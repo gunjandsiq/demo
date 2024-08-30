@@ -1,4 +1,4 @@
-from utils.helper import DbHelper, Hashing
+from utils.helper import DbHelper, passwordHelper
 from utils.models import db,User, Client, Project, Task, TaskHours, Company
 from flask import jsonify, request
 
@@ -6,7 +6,7 @@ class CompanyContoller:
     def register(self):
         try:
             db_helper = DbHelper()
-            hash = Hashing()
+            hash = passwordHelper()
             data = request.get_json()
             required_fields = ['company_name', 'firstname', 'lastname', 'email', 'password']
             if not data or not all(data.get(key) for key in required_fields):
@@ -18,7 +18,7 @@ class CompanyContoller:
             email = data['email']
             password = data['password']
 
-            hashed_password = hash.encrypt_password(password)
+            hashed_password = hash.hash_password(password)
             existing_company = Company.query.filter_by(name=company_name).first()
             if existing_company:
                 return jsonify({'message': 'Company already exists'}), 409 
@@ -33,6 +33,28 @@ class CompanyContoller:
             user = User(firstname=firstname, lastname=lastname, email=email, password=hashed_password, company_id=company.id)
             db_helper.add_record(user)
             return jsonify({'message': 'Company and user added successfully'})
+        except Exception as e:
+            return jsonify({'message': str(e)}), 500
+        
+    def login(self):
+        try:
+            db_helper = DbHelper()
+            data = request.get_json()
+            if not data or not 'email' in data or not 'password' in data:
+                return jsonify({'message': 'Invalid input'}), 400
+
+            email = data['email']
+            password = data['password']
+
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                return jsonify({'message': 'User not found'}), 404
+
+            if not passwordHelper().check_password(password, user.password):
+                return jsonify({'message': 'Invalid password'}), 401
+
+            token = db_helper.generate_token(user)
+            return jsonify({'token': token})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
 
