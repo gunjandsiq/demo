@@ -376,6 +376,7 @@ class TaskHourContoller:
         try:
             db_helper = DbHelper()
             data = request.get_json()
+            data['user_id'] = "9a847ecf-22d8-4055-8e25-41e2c9634f43"
             required_fields = ['values', 'start_date', 'task_id', 'user_id']
             
             if not data or any(field not in data for field in required_fields):
