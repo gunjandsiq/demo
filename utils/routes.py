@@ -27,6 +27,14 @@ def register():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     
+@api.route('/login', methods=['POST'])
+def login():
+    try:    
+        company = CompanyContoller()
+        return company.login()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
 @api.route('/updateuser', methods=['POST'])
 def update_user():
     try:
@@ -66,6 +74,14 @@ def delete_client():
         return client.delete_client()
     except Exception as e:
         return jsonify({'message': str(e)}), 500
+    
+@api.route('/clientlist')
+def client_list():
+    try:
+        client = ClientContoller()
+        return client.client_list()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
 
 @api.route('/addproject', methods=['POST'])
 def add_project():
@@ -91,6 +107,14 @@ def delete_project():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
+@api.route('/projectlist')
+def project_list():
+    try:
+        project = ProjectContoller()
+        return project.project_list()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
 @api.route('/addtask', methods=['POST'])
 def add_task():
     try:
@@ -154,12 +178,10 @@ def metadata():
         project = ProjectContoller()
         task = TaskContoller()
         taskhour = TaskHourContoller()
-        return jsonify({
-                'clients': client.client_list(),
-                'projects': project.project_list(),
-                'tasks': task.task_list(),
-                'task hours': taskhour.taskhours_list()
-            })
+
+        return client.client_list(), project.project_list()
+                # 'tasks': task.task_list(),
+                # 'task hours': taskhour.taskhours_list()
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 

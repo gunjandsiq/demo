@@ -69,7 +69,12 @@ class User(db.Model, TimeStamp):
 class Client(db.Model, TimeStamp):
     __tablename__ = 'client'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
-    name = db.Column(db.String(100), nullable=False)
+    firstname = db.Column(db.String(100), nullable=False)
+    lastname = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    phone = db.Column(db.String(10), nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_archived = db.Column(db.Boolean, default=False)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('company.id', ondelete="CASCADE"), nullable=False)
     projects = db.relationship('Project', backref='client', cascade="all, delete-orphan", passive_deletes=True)
 
@@ -77,6 +82,10 @@ class Project(db.Model, TimeStamp):
     __tablename__ = 'project'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_archived = db.Column(db.Boolean, default=False)
     client_id = db.Column(UUID(as_uuid=True), db.ForeignKey('client.id', ondelete="CASCADE"), nullable=False)
     tasks = db.relationship('Task', backref='project', cascade="all, delete-orphan", passive_deletes=True)
 
@@ -85,8 +94,10 @@ class Task(db.Model, TimeStamp):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project.id', ondelete="CASCADE"), nullable=False)
-    start_date = db.Column(db.Date, nullable=False)
-    end_date = db.Column(db.Date, nullable=False)
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_archived = db.Column(db.Boolean, default=False)
     metas = db.relationship('TaskHours', backref='task', cascade="all, delete-orphan", passive_deletes=True)
 
 class TaskHours(db.Model, TimeStamp):
@@ -94,5 +105,7 @@ class TaskHours(db.Model, TimeStamp):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
     values = db.Column(db.ARRAY(db.Integer), nullable=False, default=lambda: [0] * 7)
     start_date = db.Column(db.Date, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_archived = db.Column(db.Boolean, default=False)
     task_id = db.Column(UUID(as_uuid=True), db.ForeignKey('task.id', ondelete="CASCADE"), nullable=False)
     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id', ondelete="CASCADE"), nullable=False)

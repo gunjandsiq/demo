@@ -1,4 +1,4 @@
-from utils.helper import DbHelper, passwordHelper
+from utils.helper import DbHelper, passwordHelper, authenticationHelper
 from utils.models import db,User, Client, Project, Task, TaskHours, Company
 from flask import jsonify, request
 
@@ -10,7 +10,7 @@ class CompanyContoller:
             data = request.get_json()
             required_fields = ['company_name', 'firstname', 'lastname', 'email', 'password']
             if not data or not all(data.get(key) for key in required_fields):
-                return jsonify({'message': 'Invalid input: All fields are required'}), 400
+                return jsonify({'message': 'Invalid input: All fields are required', 'status': 400}), 400
 
             company_name = data['company_name']
             firstname = data['firstname']
@@ -21,42 +21,46 @@ class CompanyContoller:
             hashed_password = hash.hash_password(password)
             existing_company = Company.query.filter_by(name=company_name).first()
             if existing_company:
-                return jsonify({'message': 'Company already exists'}), 409 
+                return jsonify({'message': 'Company already exists', 'status': 409}), 409 
             
             existing_user = User.query.filter_by(email=email).first()
             if existing_user:
-                return jsonify({'message': 'Email already exists'}), 409 
+                return jsonify({'message': 'Email already exists', 'status': 409}), 409 
             
             company = Company(name=company_name)
             db_helper.add_record(company) 
 
             user = User(firstname=firstname, lastname=lastname, email=email, password=hashed_password, company_id=company.id)
             db_helper.add_record(user)
-            return jsonify({'message': 'Company and user added successfully'})
+            return jsonify({'message': 'Company and user added successfully', 'status': 201})
         except Exception as e:
-            return jsonify({'message': str(e)}), 500
+            return jsonify({'message': str(e), 'status': 500}), 500
         
     def login(self):
         try:
             db_helper = DbHelper()
+            auth = authenticationHelper()
             data = request.get_json()
             if not data or not 'email' in data or not 'password' in data:
-                return jsonify({'message': 'Invalid input'}), 400
+                return jsonify({'message': 'Invalid input: email and password required', 'status': 400}), 400
 
             email = data['email']
             password = data['password']
 
             user = User.query.filter_by(email=email).first()
             if not user:
-                return jsonify({'message': 'User not found'}), 404
+                return jsonify({'message': 'Incorrect email or password', 'status': 401}), 404
 
             if not passwordHelper().check_password(password, user.password):
-                return jsonify({'message': 'Invalid password'}), 401
+                return jsonify({'message': 'Incorrect email or password', 'status': 401}), 401
 
-            token = db_helper.generate_token(user)
-            return jsonify({'token': token})
+            access_token = auth.create_access_token(user.email, {'role': 'admin'})
+            refresh_token = auth.create_refresh_token(user.email, {'role': 'admin'})
+            return jsonify({'access_token': access_token,
+                            'refresh_token': refresh_token,
+                            'status': 201})
         except Exception as e:
-            return jsonify({'message': str(e)}), 500
+            return jsonify({'message': str(e), 'status': 500}), 500
 
     def update_company(self):
         pass
@@ -92,7 +96,7 @@ class UserContoller:
             db_helper = DbHelper()
             data = request.get_json()
             if not data or not 'id' in data or not 'email' in data or not 'firstname' in data or not 'lastname' in data or not 'company_id' in data:
-                return jsonify({'message': 'Invalid input'}), 400
+                return jsonify({'message': 'Invalid input', 'status': 400}), 400
 
             id = data['id']
             email = data['email']
@@ -136,118 +140,141 @@ class ClientContoller:
         try:
             db_helper = DbHelper()
             data = request.get_json()
-            if not data or not 'name' in data or not 'company_id' in data:
-                return jsonify({'message': 'Invalid input'}), 400
+            required_fields = ['firstname', 'lastname', 'email', 'phone', 'company_id']
+            if not data or not all(data.get(key) for key in required_fields):
+                return jsonify({'message': 'Invalid input: All fields are required', 'status': 400}), 400
 
-            name = data['name']
+            firstname = data['firstname']
+            lastname = data['lastname']
+            email = data['email']
+            phone = data['phone']
             company_id = data['company_id']
 
-            existing_client = Client.query.filter_by(name=name, company_id=company_id).first()
+            existing_client = Client.query.filter_by(email=email, company_id=company_id).first()
             if existing_client:
-                return jsonify({'message': 'Email already exists'}), 409 
+                return jsonify({'message': 'Client already exists', 'status': 409}), 409 
             
-            client = Client(name=name, company_id=company_id)
+            client = Client(firstname=firstname, lastname=lastname, email=email, phone=phone, company_id=company_id)
             db_helper.add_record(client)
-            return jsonify({'message': 'Client added successfully'})
+            return jsonify({'message': 'Client added successfully', 'status': 201})
         except Exception as e:
-            return jsonify({'message': str(e)}), 500
+            return jsonify({'message': str(e), 'status': 500}), 500
 
     def update_client(self):
         try:
             db_helper = DbHelper()
             data = request.get_json()
-            if not data or not 'id' in data or not 'name' in data:
-                return jsonify({'message': 'Invalid input'}), 400
+            if not data or not 'id' in data:
+                return jsonify({'message': 'Invalid input', 'status': 400}), 400
 
             id = data['id']
-            name = data['name']
-            company_id = data['company_id']
 
             client = Client.query.filter_by(id=id).first()
             if not client:
-                return jsonify({'message': 'Client not found'}), 404
-            
-            client.name = name
-            client.company_id = company_id
+                return jsonify({'message': 'Client not found', 'status': 404}), 404
+
+            if 'email' in data and client.email != data['email']:
+                return jsonify({'message': 'Client cannot be updated', 'status': 409}), 409
+        
+            for key, value in data.items():
+                if key != 'id' and key != 'email':
+                    setattr(client, key, value)
             db_helper.update_record()
-            return jsonify({'message': 'Client updated successfully'})
+            return jsonify({'message': 'Client updated successfully', 'status': 201})
         except Exception as e:
-            return jsonify({'message': str(e)}), 500
+            return jsonify({'message': str(e), 'status': 500}), 500
 
     def delete_client(self):
         try:
             db_helper = DbHelper()
             data = request.get_json()
             if not data or not 'id' in data:
-                return jsonify({'message': 'Invalid input'}), 400
+                return jsonify({'message': 'Invalid input', 'status': 400}), 400
 
             id = data['id']
 
             client = Client.query.filter_by(id=id).first()
             if not client:
-                return jsonify({'message': 'Client not found'}), 404
+                return jsonify({'message': 'Client not found', 'status': 404}), 404
             
-            db_helper.delete_record(client)
-            return jsonify({'message': 'Client deleted successfully'})
+            client.is_archived = True
+            client.is_active = False
+            db_helper.update_record()
+            return jsonify({'message': 'Client deleted successfully', 'status': 201})
         except Exception as e:
-            return jsonify({'message': str(e)}), 500
+            return jsonify({'message': str(e), 'status': 500}), 500
 
     def client_list(self):
         try:
-            clients = Client.query.all()
+            clients = Client.query.filter_by(is_archived = False).all()
             client_list = []
 
+            if not clients:
+                return jsonify({'message': 'No data found', 'status': 404}), 404
+            
             for client in clients:
                 client_list.append({
                     'id': str(client.id),
-                    'name': client.name
+                    'firstname': client.firstname,
+                    'lastname': client.lastname,
+                    'email': client.email,
+                    'phone': client.phone,
+                    'is_active': client.is_active
                 })
-            return client_list
+            return jsonify({
+                'clients': client_list,
+                'status': 201
+            })
         except Exception as e:
-            return jsonify({'message': str(e)}), 500
+            return jsonify({'message': str(e), 'status': 500}), 500
 
 class ProjectContoller:
+
     def add_project(self):
         try:
             db_helper = DbHelper()
             data = request.get_json()
-            if not data or not 'name' in data or not 'client_id' in data:
-                return jsonify({'message': 'Invalid input'}), 400
+
+            if not data or 'name' not in data or 'client_id' not in data:
+                return jsonify({'message': 'Invalid input', 'status': 400}), 400
 
             name = data['name']
             client_id = data['client_id']
 
             existing_project = Project.query.filter_by(name=name, client_id=client_id).first()
             if existing_project:
-                return jsonify({'message': 'Project already exists'}), 409
+                return jsonify({'message': 'Project already exists', 'status': 409}), 409
 
-            project = Project(name=name, client_id=client_id)
+            project = Project(is_active=True)
+            for key, value in data.items():
+                if hasattr(Project, key): 
+                    setattr(project, key, value)
+
             db_helper.add_record(project)
-            return jsonify({'message': 'Project added successfully'})
+
+            return jsonify({'message': 'Project added successfully', 'status': 201}), 201
         except Exception as e:
-            return jsonify({'message': str(e)}), 500
+            return jsonify({'message': str(e), 'status': 500}), 500
 
     def update_project(self):
         try:
             db_helper = DbHelper()
             data = request.get_json()
-            if not data or not 'id' in data or not 'name' in data or not 'client_id' in data:
-                return jsonify({'message': 'Invalid input'}), 400
+            if not data or not 'id' in data:
+                return jsonify({'message': 'Invalid input', 'status': 400}), 400
 
             id = data['id']
-            name = data['name']
-            client_id = data['client_id']
 
             project = Project.query.filter_by(id=id).first()
             if not project:
-                return jsonify({'message': 'Project not found'}), 404
+                return jsonify({'message': 'Project not found', 'status': 404}), 404
             
-            project.name = name
-            project.client_id = client_id
+            for key, value in data.items():
+                    setattr(project, key, value)
             db_helper.update_record()
-            return jsonify({'message': 'Project updated successfully'})
+            return jsonify({'message': 'Project updated successfully', 'status': 201})
         except Exception as e:
-            return jsonify({'message': str(e)}), 500
+            return jsonify({'message': str(e), 'status': 500}), 500
 
     def delete_project(self):
         try:
@@ -262,14 +289,16 @@ class ProjectContoller:
             if not project:
                 return jsonify({'message': 'Project not found'}), 404
             
-            db_helper.delete_record(project)
+            project.is_archived = True
+            project.is_active = False
+            db_helper.update_record()
             return jsonify({'message': 'Project deleted successfully'})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
 
     def project_list(self):
         try:
-            projects = Project.query.all()
+            projects = Project.query.filter_by(is_archived = False).all()
             project_list = []
 
             for project in projects:
@@ -277,10 +306,16 @@ class ProjectContoller:
                 project_list.append({
                     'id': str(project.id),
                     'name': project.name,
+                    'start_date': project.start_date,
+                    'end_date': project.end_date,
+                    'is_active': project.is_active,
                     'client_id': str(project.client_id),
-                    'client_name': client.name if client else None
+                    'client_name': f'{client.firstname} {client.lastname}' if client else None
                 })
-            return project_list
+            return jsonify({
+                'projects': project_list,
+                'status': 201
+            })
         except Exception as e:
             return jsonify({'message': str(e)}), 500
 
@@ -311,23 +346,17 @@ class TaskContoller:
         try:
             db_helper = DbHelper()
             data = request.get_json()
-            if not data or not 'id' in data or not 'name' in data or not 'project_id' in data or not 'start_date' in data or not 'end_date' in data:
+            if not data or not 'id' in data:
                 return jsonify({'message': 'Invalid input'}), 400
 
             id = data['id']
-            name = data['name']
-            project_id = data['project_id']
-            start_date = data['start_date']
-            end_date = data['end_date']
 
             task = Task.query.filter_by(id=id).first()
             if not task:
                 return jsonify({'message': 'Task not found'}), 404
             
-            task.name = name
-            task.project_id = project_id
-            task.start_date = start_date
-            task.end_date = end_date
+            for key, value in data.items():
+                    setattr(task, key, value)
             db_helper.update_record()
             return jsonify({'message': 'Task updated successfully'})
         except Exception as e:
@@ -346,14 +375,15 @@ class TaskContoller:
             if not task:
                 return jsonify({'message': 'Task not found'}), 404
             
-            db_helper.delete_record(task)
+            task.is_archived = True
+            task.is_active = False
             return jsonify({'message': 'Task deleted successfully'})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
 
     def task_list(self):
         try:
-            tasks = Task.query.all()
+            tasks = Task.query.filter_by(is_archived = False).all()
             task_list = []
 
             for task in tasks:
@@ -472,7 +502,7 @@ class TaskHourContoller:
                     'start_date': meta.start_date.strftime('%Y-%m-%d'),
                     'task_name': task.name, 
                     'project_name': project.name,
-                    'client_name': client.name,
+                    'client_name': client.firstname,
                     'user_id': str(meta.user_id)  
                 })               
             return meta_list
