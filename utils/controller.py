@@ -12,7 +12,7 @@ class Controller:
     def register(self):
         try:
             data = request.get_json()
-            required_fields = ['company_name', 'firstname', 'email', 'password', 'gender']
+            required_fields = ['company_name', 'firstname', 'email', 'password', 'gender', 'phone']
             if not data or not all(data.get(key) for key in required_fields):
                 return jsonify({'message': 'Invalid input: All fields are required', 'status': 400}), 400
 
@@ -21,7 +21,7 @@ class Controller:
             lastname = data.get('lastname')
             role = data.get('role', 'Admin')
             email = data['email']
-            phone = data.get('phone'),
+            phone = data['phone'],
             gender = data['gender']
             password = data['password']
 
@@ -343,6 +343,8 @@ class UserController:
                 User.role,
                 User.supervisor_id,
                 User.approver_id,
+                User.is_active,
+                User.gender,
                 supervisor_alias.firstname.label('supervisor_firstname'),
                 supervisor_alias.lastname.label('supervisor_lastname'),
                 approver_alias.firstname.label('approver_firstname'),
@@ -364,6 +366,8 @@ class UserController:
                     'name': f'{user.firstname} {user.lastname}' if user.firstname and user.lastname else user.firstname,
                     'email': user.email,
                     'role': user.role,
+                    'is_active': user.is_active,
+                    'gender': user.gender,
                     'supervisor_id': str(user.supervisor_id) if user.supervisor_id else None,
                     'supervisor_name': f'{user.supervisor_firstname} {user.supervisor_lastname}' if user.supervisor_firstname else None,
                     'approver_id': str(user.approver_id) if user.approver_id else None,
@@ -841,8 +845,6 @@ class TimesheetController:
                     'name': timesheet.name,
                     'start_date': timesheet.start_date.strftime('%Y-%m-%d'),
                     'end_date': timesheet.end_date.strftime('%Y-%m-%d'),
-                    'user_id': str(user.id) if user else None,
-                    'user_name': f'{user.firstname} {user.lastname}' if user else None,
                     'is_active': timesheet.is_active,
                     'approval': timesheet.approval.value if timesheet.approval else None
                 })
@@ -1016,7 +1018,7 @@ class ApproverController:
                     <p>Your timesheet "{timesheet.name}" has been approved.</p>
                     <p>Please review it at your convenience.</p>'''
 
-                ses.send_email(user.email, subject, body_html)
+                ses.send_email(approver.email, user.email, subject, body_html)
                 return jsonify({'message': 'Timesheet approved successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
@@ -1063,7 +1065,7 @@ class ApproverController:
                     <p>Your timesheet "{timesheet.name}" has been rejected.</p>
                     <p>Please review the reason for rejection and make necessary adjustments.</p>'''
 
-                ses.send_email(user.email, subject, body_html)
+                ses.send_email(approver.email, user.email, subject, body_html)
                 return jsonify({'message': 'Timesheet rejected successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
@@ -1076,13 +1078,6 @@ class ApproverController:
             
             if not data or any(field not in data for field in required_fields):
                 return jsonify({'message': 'Invalid input: timesheet_id required', 'status': 400}), 400
-            
-            subject = 'Timesheet Approval Request'
-            body_html = f'''
-                <h1>Timesheet Approval Request</h1>
-                <p>Dear {approver.firstname},</p>
-                <p>A new timesheet has been requested by {user.firstname} {user.lastname}.</p>
-                <p>Please review and take the necessary action.</p>'''
 
             timesheet_id = data['timesheet_id']
             user_id = self.token.get('user_id')
@@ -1102,6 +1097,13 @@ class ApproverController:
             if timesheet.approval == Approval.DRAFT:
                 timesheet.approval = Approval.PENDING
                 self.db_helper.update_record()
+
+                subject = 'Timesheet Approval Request'
+                body_html = f'''
+                    <h1>Timesheet Approval Request</h1>
+                    <p>Dear {approver.firstname},</p>
+                    <p>A new timesheet has been requested by {user.firstname} {user.lastname}.</p>
+                    <p>Please review and take the necessary action.</p>'''
             
                 ses.send_email(source='contact@digitalshelfiq.com', destination=approver.email, subject=subject, body_html=body_html)
                 return jsonify({'message': 'Approval request sent successfully', 'status': 201})
@@ -1134,7 +1136,7 @@ class ApproverController:
             
             subject = 'Timesheet Recall Request'
             body_html = f'''
-                <h1>Timesheet Recall Request</h>
+                <h1>Timesheet Recall Request</h1>
                 <p>Dear {approver.firstname},</p>
                 <p>A recall timesheet request has been made by {user.firstname} {user.lastname} for the timesheet.</p>
                 <p>Please review and approve or reject the recall request.</p>'''
@@ -1158,15 +1160,11 @@ class ApproverController:
     def approver_list(self):
         try:
             user_id = self.token.get('user_id')
-            user = User.query.filter_by(id=user_id).first()
+            user = User.query.filter_by(approver_id=user_id).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
-
-            approver = User.query.filter_by(id=user.approver_id).first()
-            if not approver:
-                return jsonify({'message': 'No approvers found', 'approvers': [],'status': 200}), 200
             
-            timesheets = Timesheet.query.filter_by(user_id=approver.id).all()
+            timesheets = Timesheet.query.filter_by(user_id=user.id).all()
 
             if not timesheets:
                 return jsonify({'message': 'No timesheets found for this user', 'timesheets': [], 'status': 200}), 200
@@ -1177,12 +1175,9 @@ class ApproverController:
                     'id': timesheet.id,
                     'name': timesheet.name,
                     'status': timesheet.approval.value, 
-                    'approver': {
-                        'id': approver.id,
-                        'firstname': approver.firstname,
-                        'lastname': approver.lastname,
-                        'email': approver.email
-                    }
+                    'start_date': timesheet.start_date.strftime('%Y-%m-%d'),
+                    'end_date': timesheet.end_date.strftime('%Y-%m-%d'),
+                    'employee_name': f"{user.firstname} {user.lastname}" if user.firstname and user.lastname else user.firstname
                 }
                 timesheet_list.append(timesheet_data)
             
