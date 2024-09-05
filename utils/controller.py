@@ -1,5 +1,5 @@
 from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity, jwt_required
-from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate
+from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval
 from flask import jsonify, request, url_for
 
 class Controller:
@@ -109,7 +109,7 @@ class Controller:
             reset_url = url_for('routes.reset_password', token=token, _external=True)
 
             subject = "Password Reset Request"
-            body_html = f"To reset your password, click the following link: {reset_url}"
+            body_html = f"To reset your password, click the following link: <a href={reset_url}>{reset_url}</a>"
             ses.send_email(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
             return jsonify({'message': 'Password reset link sent to your email', 'status': 200}), 200
@@ -781,10 +781,13 @@ class TimesheetController:
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found or does not belong to this User', 'status': 404}), 404
             
-            for key, value in data.items():
-                setattr(timesheet, key, value)
-            self.db_helper.update_record()
-            return jsonify({'message': 'Timesheet updated successfully', 'status': 201})
+            if timesheet.approval in [Approval.DRAFT, Approval.REJECTED, Approval.RECALLED]:
+                for key, value in data.items():
+                    setattr(timesheet, key, value)
+                self.db_helper.update_record()
+                return jsonify({'message': 'Timesheet updated successfully', 'status': 201})
+            else:
+                return jsonify({'message': 'Cannot update a timesheet that is not in draft or rejected state', 'status': 400})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
         
@@ -810,10 +813,13 @@ class TimesheetController:
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found or does not belong to this User', 'status': 404}), 404
             
-            timesheet.is_archived = True
-            timesheet.is_active = False
-            self.db_helper.update_record()
-            return jsonify({'message': 'Timesheet deleted successfully', 'status': 200})
+            if timesheet.approval == Approval.DRAFT: 
+                timesheet.is_archived = True
+                timesheet.is_active = False
+                self.db_helper.update_record()
+                return jsonify({'message': 'Timesheet deleted successfully', 'status': 200})
+            else:
+                return jsonify({'message': 'Cannot delete a timesheet', 'status': 400})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
         
@@ -973,26 +979,220 @@ class ApproverController:
         self.token = self.auth.get_jwt_token()
 
     def approve_timesheet(self):
-        pass
+        try:
+            ses = SesHelper()
+            data = request.get_json()
+            required_fields = ['timesheet_id']
+            
+            if not data or any(field not in data for field in required_fields):
+                return jsonify({'message': 'Invalid input: timesheet_id required', 'status': 400}), 400
+            
+            timesheet_id = data['timesheet_id']
+            user_id = self.token.get('user_id')
+
+            user = User.query.filter_by(id=user_id).first()
+            if not user:
+                return jsonify({'message': 'User not found', 'status': 404}), 404
+
+            approver = User.query.filter_by(id=user.approver_id).first()
+            if not approver:
+                return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
+            
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id).first()
+            if not timesheet:
+                return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
+            
+            if timesheet.approval == Approval.APPROVED:
+                return jsonify({'message': 'Timesheet is already approved', 'status': 409}), 409
+            
+            else:
+                timesheet.approval = Approval.APPROVED
+                self.db_helper.update_record()
+
+                subject = 'Timesheet Approved'
+                body_html = f'''
+                    <h1>Timesheet Approved</h1>
+                    <p>Dear {user.firstname},</p>
+                    <p>Your timesheet "{timesheet.name}" has been approved.</p>
+                    <p>Please review it at your convenience.</p>'''
+
+                ses.send_email(user.email, subject, body_html)
+                return jsonify({'message': 'Timesheet approved successfully', 'status': 201})
+        except Exception as e:
+            return jsonify({'message': str(e)}), 500
+
 
     def reject_timesheet(self):
-        pass
-
-    # def send_approval_request(self):
-    #     try:
-    #         data = request.get_json()
-    #         required_fields = ['timesheet_id', 'approver_id']
+        try:
+            ses = SesHelper()
+            data = request.get_json()
+            required_fields = ['timesheet_id']
             
-    #         if not data or any(field not in data for field in required_fields):
-    #             return jsonify({'message': 'Invalid input: timesheet_id and approver_id are required', 'status': 400}), 400
-
-    #         timesheet_id = data['timesheet_id']
-    #         approver_id = data['approver_id']
-
-    #         existing_request = ApprovalRequest.query.filter_by(timesheet_id=timesheet_id, approver_id=approver_id).first()
-    #         if existing_request:
-    #             return jsonify({'message': 'Approval request already exists', 'status': 409}), 409
+            if not data or any(field not in data for field in required_fields):
+                return jsonify({'message': 'Invalid input: timesheet_id required', 'status': 400}), 400
             
-    #         request = ApprovalRequest(timesheet_id=timesheet_id, approver_id=approver_id)    
-    #         self
+            timesheet_id = data['timesheet_id']
+            user_id = self.token.get('user_id')
+
+            user = User.query.filter_by(id=user_id).first()
+            if not user:
+                return jsonify({'message': 'User not found', 'status': 404}), 404
+
+            approver = User.query.filter_by(id=user.approver_id).first()
+            if not approver:
+                return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
+            
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id).first()
+            if not timesheet:
+                return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
+            
+            if timesheet.approval == Approval.REJECTED:
+                return jsonify({'message': 'Timesheet is already rejected', 'status': 409}), 409
+            
+            elif timesheet.approval == Approval.APPROVED:
+                return jsonify({'message': 'Timesheet cannot be rejected if it has been approved', 'status': 409}), 409
+            
+            else:
+                timesheet.approval = Approval.REJECTED
+                self.db_helper.update_record()
+
+                subject = 'Timesheet Rejected'
+                body_html = f'''
+                    <h1>Timesheet Rejected</h1>
+                    <p>Dear {user.firstname},</p>
+                    <p>Your timesheet "{timesheet.name}" has been rejected.</p>
+                    <p>Please review the reason for rejection and make necessary adjustments.</p>'''
+
+                ses.send_email(user.email, subject, body_html)
+                return jsonify({'message': 'Timesheet rejected successfully', 'status': 201})
+        except Exception as e:
+            return jsonify({'message': str(e)}), 500
+
+    def send_approval_request(self):
+        try:
+            ses = SesHelper()
+            data = request.get_json()
+            required_fields = ['timesheet_id']
+            
+            if not data or any(field not in data for field in required_fields):
+                return jsonify({'message': 'Invalid input: timesheet_id required', 'status': 400}), 400
+            
+            subject = 'Timesheet Approval Request'
+            body_html = f'''
+                <h1>Timesheet Approval Request</h1>
+                <p>Dear {approver.firstname},</p>
+                <p>A new timesheet has been requested by {user.firstname} {user.lastname}.</p>
+                <p>Please review and take the necessary action.</p>'''
+
+            timesheet_id = data['timesheet_id']
+            user_id = self.token.get('user_id')
+
+            user = User.query.filter_by(id=user_id).first()
+            if not user:
+                return jsonify({'message': 'User not found', 'status': 404}), 404
+
+            approver = User.query.filter_by(id=user.approver_id).first()
+            if not approver:
+                return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
+
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id).first()
+            if not timesheet:
+                return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
+            
+            if timesheet.approval == Approval.DRAFT:
+                timesheet.approval = Approval.PENDING
+                self.db_helper.update_record()
+            
+                ses.send_email(source='contact@digitalshelfiq.com', destination=approver.email, subject=subject, body_html=body_html)
+                return jsonify({'message': 'Approval request sent successfully', 'status': 201})
+            
+            else:
+                return jsonify({'message': 'Timesheet is not in draft state', 'status': 400}), 400
+            
+        except Exception as e:
+            return jsonify({'message': str(e), 'status': 500}), 500
+        
+    def send_recall_request(self):
+        try:
+            ses = SesHelper()
+            data = request.get_json()
+            required_fields = ['timesheet_id']
+            
+            if not data or any(field not in data for field in required_fields):
+                return jsonify({'message': 'Invalid input: timesheet_id required', 'status': 400}), 400
+
+            timesheet_id = data['timesheet_id']
+            user_id = self.token.get('user_id')
+
+            user = User.query.filter_by(id=user_id).first()
+            if not user:
+                return jsonify({'message': 'User not found', 'status': 404}), 404
+            
+            approver = User.query.filter_by(id=user.approver_id).first()
+            if not approver:
+                return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
+            
+            subject = 'Timesheet Recall Request'
+            body_html = f'''
+                <h1>Timesheet Recall Request</h>
+                <p>Dear {approver.firstname},</p>
+                <p>A recall timesheet request has been made by {user.firstname} {user.lastname} for the timesheet.</p>
+                <p>Please review and approve or reject the recall request.</p>'''
+
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id).first()
+            if not timesheet:
+                return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
+            
+            if timesheet.approval == Approval.APPROVED:
+                timesheet.approval = Approval.RECALLED
+                self.db_helper.update_record()
+
+                ses.send_email(source='contact@digitalshelfiq.com', destination=approver.email, subject=subject, body_html=body_html)
+                return jsonify({'message': 'Recall request sent successfully', 'status': 201})
+            else:
+                return jsonify({'message': 'Timesheet cannot be recall', 'status': 400}), 400
+            
+        except Exception as e:
+            return jsonify({'message': str(e), 'status': 500}), 500
+        
+    def approver_list(self):
+        try:
+            user_id = self.token.get('user_id')
+            user = User.query.filter_by(id=user_id).first()
+            if not user:
+                return jsonify({'message': 'User not found', 'status': 404}), 404
+
+            approver = User.query.filter_by(id=user.approver_id).first()
+            if not approver:
+                return jsonify({'message': 'No approvers found', 'approvers': [],'status': 200}), 200
+            
+            timesheets = Timesheet.query.filter_by(user_id=approver.id).all()
+
+            if not timesheets:
+                return jsonify({'message': 'No timesheets found for this user', 'timesheets': [], 'status': 200}), 200
+            
+            timesheet_list = []
+            for timesheet in timesheets:
+                timesheet_data = {
+                    'id': timesheet.id,
+                    'name': timesheet.name,
+                    'status': timesheet.approval.value, 
+                    'approver': {
+                        'id': approver.id,
+                        'firstname': approver.firstname,
+                        'lastname': approver.lastname,
+                        'email': approver.email
+                    }
+                }
+                timesheet_list.append(timesheet_data)
+            
+                return jsonify({'message': 'Timesheets and approver retrieved successfully', 'timesheets': timesheet_list, 'status': 200})
+            
+        except Exception as e:
+            return jsonify({'message': str(e), 'status': 500}), 500
+        
+    
+            
+            
+            
 

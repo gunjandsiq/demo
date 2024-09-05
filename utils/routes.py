@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from utils.models import db
-from utils.controller import UserController, ClientController, ProjectController, TaskController, TaskHourController, Controller, TimesheetController, CompanyController
+from utils.controller import UserController, ClientController, ProjectController, TaskController, TaskHourController, Controller, TimesheetController, CompanyController, ApproverController
 
 api = Blueprint('routes', __name__)
 
@@ -275,6 +275,46 @@ def taskhours_list():
     try:
         taskhour = TaskHourController()
         return taskhour.taskhours_list()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
+@api.route('/approvalrequest', methods=['POST'])
+def send_approval():
+    try:
+        app = ApproverController()
+        return app.send_approval_request()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
+@api.route('/recallrequest', methods=['POST'])
+def send_recall():
+    try:
+        recall = ApproverController()
+        return recall.send_recall_request()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
+@api.route('/approvetimesheet', methods=['POST'])
+def approve_timesheet():
+    try:
+        approver = ApproverController()
+        return approver.approve_timesheet()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
+@api.route('/rejecttimesheet', methods=['POST'])
+def reject_timesheet():
+    try:
+        approver = ApproverController()
+        return approver.reject_timesheet()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
+@api.route('/approverlist', methods=['GET'])
+def approver_list():
+    try:
+        approver = ApproverController()
+        return approver.approver_list()
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
