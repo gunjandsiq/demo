@@ -347,6 +347,7 @@ class UserController:
                 User.approver_id,
                 User.is_active,
                 User.gender,
+                User.created_date,
                 supervisor_alias.firstname.label('supervisor_firstname'),
                 supervisor_alias.lastname.label('supervisor_lastname'),
                 approver_alias.firstname.label('approver_firstname'),
@@ -356,7 +357,7 @@ class UserController:
             .filter(
                 User.company_id == company_id,
                 User.is_archived == False
-            ).all()
+            ).order_by(User.created_date.desc()).all()
 
             if not users:
                 return jsonify({'message': 'No users found for this company', 'status': 404}), 404
@@ -480,7 +481,7 @@ class ClientController:
         try:
             company_id = self.token.get('company_id')
 
-            clients = Client.query.filter_by(company_id=company_id, is_archived=False).all()
+            clients = Client.query.filter_by(company_id=company_id, is_archived=False).order_by(Client.created_date.desc()).all()
 
             if not clients:
                 return jsonify({'message': 'No data found', 'status': 404}), 404
@@ -596,7 +597,7 @@ class ProjectController:
                 Client.firstname, 
                 Client.lastname
                 ).join(Client, Project.client_id == Client.id).filter(
-                    Client.company_id == company_id, Project.is_archived == False).all()
+                    Client.company_id == company_id, Project.is_archived == False).order_by(Project.created_date.desc()).all()
             
             if not projects:
                 return jsonify({'message': 'No projects found for this company', 'status': 404}), 404
@@ -708,7 +709,7 @@ class TaskController:
             ).join(Project, Task.project_id == Project.id).join(Client, Project.client_id == Client.id).filter(
                 Client.company_id == company_id,
                 Task.is_archived == False
-            ).all()
+            ).order_by(Task.created_date.desc()).all()
             
             if not tasks:
                 return jsonify({'message': 'No tasks found for this company', 'status': 404}), 404
@@ -847,7 +848,7 @@ class TimesheetController:
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
-            timesheets = Timesheet.query.filter_by(user_id=user.id, is_archived = False).all()
+            timesheets = Timesheet.query.filter_by(user_id=user.id, is_archived = False).order_by(Timesheet.created_date.desc()).all()
             timesheet_list = []
 
             for timesheet in timesheets:
@@ -983,7 +984,7 @@ class TaskHourController:
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
 
-            taskhours = TaskHours.query.filter_by(timesheet_id=timesheet_id, is_active=True).all()
+            taskhours = TaskHours.query.filter_by(timesheet_id=timesheet_id, is_active=True).order_by(TaskHours.created_date.desc()).all()
             taskhour_list = []
             
             for taskhour in taskhours:
