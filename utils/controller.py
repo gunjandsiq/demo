@@ -282,9 +282,11 @@ class UserController:
             user = User.query.filter_by(id=user_id, company_id=company_id).first()
             if not user:
                 return jsonify({'message': 'User not found or does not belong to this company', 'status': 404}), 404
-
-            if 'email' in data and data['email'] != user.email:
-                return jsonify({'message': 'Email cannot be updated', 'status': 409}), 409
+            
+            if 'email' in data:
+                existing_user = User.query.filter_by(email=data['email'], company_id=company_id).first()
+                if existing_user and existing_user.id != user_id:
+                    return jsonify({'message': 'Email is already in use by another user', 'status': 409}), 409
             
             if 'phone' in data:
                 phone = data['phone']
@@ -292,7 +294,7 @@ class UserController:
                     return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
             
             for key, value in data.items():
-                if key not in ['id', 'email']: 
+                if key != 'id' and value: 
                     setattr(user, key, value)
 
             self.db_helper.update_record()
@@ -433,9 +435,6 @@ class ClientController:
             client = Client.query.filter_by(id=client_id, company_id=company_id).first()
             if not client:
                 return jsonify({'message': 'Client not found or does not belong to this company', 'status': 404}), 404
-
-            if 'email' in data and client.email == data['email']:
-                return jsonify({'message': 'No changes made. Email is the same', 'status': 409}), 409
             
             if 'email' in data:
                 existing_client = Client.query.filter_by(email=data['email'], company_id=company_id).first()
@@ -446,7 +445,7 @@ class ClientController:
                 return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
         
             for key, value in data.items():
-                if key != 'id':
+                if key != 'id' and value:
                     setattr(client, key, value)
             self.db_helper.update_record()
             return jsonify({'message': 'Client updated successfully', 'status': 200})
@@ -555,6 +554,7 @@ class ProjectController:
                 return jsonify({'message': 'Project not found', 'status': 404}), 404
             
             for key, value in data.items():
+                if value:
                     setattr(project, key, value)
             self.db_helper.update_record()
             return jsonify({'message': 'Project updated successfully', 'status': 201})
@@ -664,6 +664,7 @@ class TaskController:
                 return jsonify({'message': 'Task not found', 'status': 404}), 404
             
             for key, value in data.items():
+                if value:
                     setattr(task, key, value)
             self.db_helper.update_record()
             return jsonify({'message': 'Task updated successfully', 'status': 201})
@@ -796,7 +797,8 @@ class TimesheetController:
             
             if timesheet.approval in [Approval.DRAFT, Approval.REJECTED, Approval.RECALLED]:
                 for key, value in data.items():
-                    setattr(timesheet, key, value)
+                    if value:
+                        setattr(timesheet, key, value)
                 self.db_helper.update_record()
                 return jsonify({'message': 'Timesheet updated successfully', 'status': 201})
             else:
@@ -941,6 +943,7 @@ class TaskHourController:
                 return jsonify({'message': 'TaskHours not found', 'status': 404}), 404
             
             for key, value in data.items():
+                if value:
                     setattr(taskhours, key, value)
 
             self.db_helper.update_record()
