@@ -364,6 +364,8 @@ class UserController:
                 result.append({
                     'id': str(user.id),
                     'name': f'{user.firstname} {user.lastname}' if user.firstname and user.lastname else user.firstname,
+                    'firstname': user.firstname,
+                    'lastname': user.lastname,
                     'email': user.email,
                     'role': user.role,
                     'is_active': user.is_active,
@@ -432,14 +434,19 @@ class ClientController:
             if not client:
                 return jsonify({'message': 'Client not found or does not belong to this company', 'status': 404}), 404
 
-            if 'email' in data and client.email != data['email']:
-                return jsonify({'message': 'Client cannot be updated', 'status': 409}), 409
+            if 'email' in data and client.email == data['email']:
+                return jsonify({'message': 'No changes made. Email is the same', 'status': 409}), 409
+            
+            if 'email' in data:
+                existing_client = Client.query.filter_by(email=data['email'], company_id=company_id).first()
+                if existing_client and existing_client.id != client_id:
+                    return jsonify({'message': 'Email is already in use by another client', 'status': 409}), 409
             
             if 'phone' in data and (len(data['phone'])!= 10 or not data['phone'].isdigit()):
                 return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
         
             for key, value in data.items():
-                if key != 'id' and key != 'email':
+                if key != 'id':
                     setattr(client, key, value)
             self.db_helper.update_record()
             return jsonify({'message': 'Client updated successfully', 'status': 200})
@@ -484,6 +491,8 @@ class ClientController:
                 client_list.append({
                     'id': str(client.id),
                     'name': f'{client.firstname} {client.lastname}' if client.firstname and client.lastname else client.firstname,
+                    'firstname': client.firstname,
+                    'lastname': client.lastname,
                     'email': client.email,
                     'phone': client.phone,
                     'is_active': client.is_active
@@ -886,6 +895,38 @@ class TaskHourController:
             return jsonify({'message': 'TaskHours added successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
+        
+    def add_taskhours(self):
+        try:
+            data = request.get_json()
+
+            if not isinstance(data, list) or not all(isinstance(item, dict) for item in data):
+                return jsonify({'message': 'Invalid input: a list of task hours objects is required', 'status': 400}), 400
+
+            for entry in data:
+                required_fields = ['values', 'task_id', 'timesheet_id']
+                
+                if any(field not in entry for field in required_fields):
+                    return jsonify({'message': 'Invalid input: each object must contain values, task_id, and timesheet_id', 'status': 400}), 400
+
+                values = entry['values']
+                if len(values) != 7:
+                    return jsonify({'message': 'Values array must have exactly 7 elements', 'status': 400}), 400
+
+                task_id = entry['task_id']
+                timesheet_id = entry['timesheet_id']
+
+                existing_taskhour = TaskHours.query.filter_by(task_id=task_id, timesheet_id=timesheet_id).first()
+                if existing_taskhour:
+                    return jsonify({'message': f'TaskHours already exists for task_id {task_id}', 'status': 409}), 409
+
+                taskhour = TaskHours(values=values, task_id=task_id, timesheet_id=timesheet_id)
+                self.db_helper.add_record(taskhour)
+
+            return jsonify({'message': 'TaskHours added successfully', 'status': 201})
+        except Exception as e:
+            return jsonify({'message': str(e), 'status': 500}), 500
+
 
     def update_taskhours(self):
         try:
