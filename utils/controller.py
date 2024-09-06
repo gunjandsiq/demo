@@ -256,7 +256,7 @@ class UserController:
                 if len(phone) != 10 or not phone.isdigit():
                     return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
 
-            existing_user = User.query.filter_by(email=email).first()
+            existing_user = User.query.filter_by(email=email , is_archived = False).first()
             if existing_user:
                 return jsonify({'message': 'Email already exists', 'status': 409}), 409 
             
@@ -279,12 +279,12 @@ class UserController:
 
             user_id = data['id']
 
-            user = User.query.filter_by(id=user_id, company_id=company_id).first()
+            user = User.query.filter_by(id=user_id, company_id=company_id, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found or does not belong to this company', 'status': 404}), 404
             
             if 'email' in data:
-                existing_user = User.query.filter_by(email=data['email'], company_id=company_id).first()
+                existing_user = User.query.filter_by(email=data['email'], company_id=company_id, is_archived = False).first()
                 if existing_user and existing_user.id != user_id:
                     return jsonify({'message': 'Email is already in use by another user', 'status': 409}), 409
             
@@ -316,7 +316,7 @@ class UserController:
 
             user_id = data['id']
 
-            user = User.query.filter_by(id=user_id, company_id=company_id).first()
+            user = User.query.filter_by(id=user_id, company_id=company_id, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found or does not belong to this company', 'status': 404}), 404
             
@@ -410,7 +410,7 @@ class ClientController:
             if phone and (len(phone) != 10 or not phone.isdigit()):
                 return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
 
-            existing_client = Client.query.filter_by(email=email, company_id=company_id).first()
+            existing_client = Client.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
             if existing_client:
                 return jsonify({'message': 'Client already exists', 'status': 409}), 409 
             
@@ -433,12 +433,12 @@ class ClientController:
 
             client_id = data['id']
 
-            client = Client.query.filter_by(id=client_id, company_id=company_id).first()
+            client = Client.query.filter_by(id=client_id, company_id=company_id, is_archived = False).first()
             if not client:
                 return jsonify({'message': 'Client not found or does not belong to this company', 'status': 404}), 404
             
             if 'email' in data:
-                existing_client = Client.query.filter_by(email=data['email'], company_id=company_id).first()
+                existing_client = Client.query.filter_by(email=data['email'], company_id=company_id, is_archived = False).first()
                 if existing_client and existing_client.id != client_id:
                     return jsonify({'message': 'Email is already in use by another client', 'status': 409}), 409
             
@@ -466,7 +466,7 @@ class ClientController:
 
             client_id = data['id']
 
-            client = Client.query.filter_by(id=client_id, company_id=company_id).first()
+            client = Client.query.filter_by(id=client_id, company_id=company_id, is_archived = False).first()
             if not client:
                 return jsonify({'message': 'Client not found or does not belong to this company', 'status': 404}), 404
             
@@ -527,7 +527,7 @@ class ProjectController:
             name = data['name']
             client_id = data['client_id']
 
-            existing_project = Project.query.filter_by(name=name, client_id=client_id).first()
+            existing_project = Project.query.filter_by(name=name, client_id=client_id, is_archived = False).first()
             if existing_project:
                 return jsonify({'message': 'Project already exists', 'status': 409}), 409
 
@@ -550,7 +550,7 @@ class ProjectController:
 
             project_id = data['id']
 
-            project = Project.query.filter_by(id=project_id).first()
+            project = Project.query.filter_by(id=project_id, is_archived = False).first()
             if not project:
                 return jsonify({'message': 'Project not found', 'status': 404}), 404
             
@@ -570,7 +570,7 @@ class ProjectController:
 
             project_id = data['id']
 
-            project = Project.query.filter_by(id=project_id).first()
+            project = Project.query.filter_by(id=project_id, is_archived = False).first()
             if not project:
                 return jsonify({'message': 'Project not found', 'status': 404}), 404
             
@@ -638,7 +638,7 @@ class TaskController:
             name = data['name']
             project_id = data['project_id']
 
-            existing_task = Task.query.filter_by(name=name, project_id=project_id).first()
+            existing_task = Task.query.filter_by(name=name, project_id=project_id, is_archived = False).first()
             if existing_task:
                 return jsonify({'message': 'Task already exists', 'status': 409}), 409
             
@@ -660,7 +660,7 @@ class TaskController:
 
             task_id = data['id']
 
-            task = Task.query.filter_by(id=task_id).first()
+            task = Task.query.filter_by(id=task_id, is_archived = False).first()
             if not task:
                 return jsonify({'message': 'Task not found', 'status': 404}), 404
             
@@ -680,7 +680,7 @@ class TaskController:
 
             task_id = data['id']
 
-            task = Task.query.filter_by(id=task_id).first()
+            task = Task.query.filter_by(id=task_id, is_archived = False).first()
             if not task:
                 return jsonify({'message': 'Task not found', 'status': 404}), 404
             
@@ -755,7 +755,7 @@ class TimesheetController:
             email = self.token.get('email')
             company_id = self.token.get('company_id')
             
-            user = User.query.filter_by(email=email, company_id=company_id).first()
+            user = User.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
@@ -764,7 +764,7 @@ class TimesheetController:
             dimdate = DimDate.query.filter(DimDate.date_actual == date).first()
             name = f'Week {dimdate.week_of_year}, {dimdate.year_actual} Timesheet'
 
-            existing_timesheet = Timesheet.query.filter_by(name=name, user_id=user.id).first()
+            existing_timesheet = Timesheet.query.filter_by(name=name, user_id=user.id, is_archived = False).first()
             if existing_timesheet:
                 return jsonify({'message': 'Timesheet already exists', 'status': 409}), 409
             
@@ -782,7 +782,7 @@ class TimesheetController:
             email = self.token.get('email')
             company_id = self.token.get('company_id')
     
-            user = User.query.filter_by(email=email, company_id=company_id).first()
+            user = User.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
@@ -792,7 +792,7 @@ class TimesheetController:
 
             timesheet_id = data['id']
 
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived = False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found or does not belong to this User', 'status': 404}), 404
             
@@ -815,7 +815,7 @@ class TimesheetController:
             email = self.token.get('email')
             company_id = self.token.get('company_id')
         
-            user = User.query.filter_by(email=email, company_id=company_id).first()
+            user = User.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
@@ -825,7 +825,7 @@ class TimesheetController:
 
             timesheet_id = data['id']
 
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived = False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found or does not belong to this User', 'status': 404}), 404
             
