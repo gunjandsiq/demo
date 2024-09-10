@@ -158,6 +158,14 @@ def add_project():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
+@api.route('/addduplicateproject', methods=['POST'])   
+def duplicate_project():
+    try:
+        project = ProjectController()
+        return project.add_duplicate_project()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
 @api.route('/updateproject', methods=['POST'])
 def update_project():
     try:
@@ -187,6 +195,14 @@ def add_task():
     try:
         task = TaskController()
         return task.add_task()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+@api.route('/addduplicatetask', methods=['POST'])
+def duplicate_task():
+    try:
+        task = TaskController()
+        return task.add_duplicate_task()
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 

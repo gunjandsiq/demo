@@ -1,6 +1,7 @@
 from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity, jwt_required
 from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval
 from flask import jsonify, request, url_for
+from sqlalchemy import func
 
 class Controller:
 
@@ -27,9 +28,9 @@ class Controller:
 
             hashed_password = self.password_helper.hash_password(password)
             
-            existing_company = Company.query.filter_by(name=company_name).first()
+            existing_company = Company.query.filter_by(name=company_name, is_archived = False).first()
             if existing_company:
-                existing_user = User.query.filter_by(email=email, company_id=existing_company.id).first()
+                existing_user = User.query.filter_by(email=email, company_id=existing_company.id, is_archived = False).first()
                 if existing_user:
                     return jsonify({'message': 'User with this email already exists in the company', 'status': 409}), 409 
             
@@ -64,7 +65,7 @@ class Controller:
             email = data['email']
             password = data['password']
 
-            user = User.query.filter_by(email=email).first()
+            user = User.query.filter_by(email=email, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'Incorrect email or password', 'status': 401}), 401
 
@@ -82,13 +83,12 @@ class Controller:
     @jwt_required(refresh=True)
     def refresh_token(self):
         current_user = get_jwt_identity()
-        user = User.query.filter_by(email=current_user).first()
+        user = User.query.filter_by(email=current_user, is_archived = False).first()
         claims = {
             'user_id': str(user.id),
             'company_id': str(user.company_id),
             'role': user.role
         }
-
         new_access_token = self.authentication_helper.create_access_token(current_user, claims)
         return jsonify(access_token=new_access_token), 200
         
@@ -101,7 +101,7 @@ class Controller:
                 return jsonify({'message': 'Invalid input: email required', 'status': 400}), 400
 
             email = data['email']
-            user = User.query.filter_by(email=email).first()
+            user = User.query.filter_by(email=email, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
 
@@ -129,11 +129,10 @@ class Controller:
             
             new_password = data['password']
 
-            user = User.query.filter_by(email=email).first()
+            user = User.query.filter_by(email=email, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
 
-            # Reset the user's password
             hashed_password = self.password_helper.hash_password(new_password)
             user.password = hashed_password
             self.db_helper.update_record()
@@ -159,7 +158,7 @@ class Controller:
             current_password = data['current_password']
             new_password = data['new_password']
 
-            user = User.query.filter_by(email=email, company_id=company_id).first()
+            user = User.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
@@ -189,7 +188,7 @@ class CompanyController:
             company_id = self.token.get('company_id')
 
             data = request.get_json()
-            company = Company.query.filter_by(id=company_id).first()
+            company = Company.query.filter_by(id=company_id, is_archived = False).first()
             if not company:
                 return jsonify({'message': 'Company not found', 'status': 404}), 404
 
@@ -208,7 +207,7 @@ class CompanyController:
 
             company_id = self.token.get('company_id')
 
-            company = Company.query.filter_by(id=company_id).first()
+            company = Company.query.filter_by(id=company_id, is_archived = False).first()
             if not company:
                 return jsonify({'message': 'Company not found', 'status': 404}), 404
 
@@ -256,7 +255,7 @@ class UserController:
                 if len(phone) != 10 or not phone.isdigit():
                     return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
 
-            existing_user = User.query.filter_by(email=email , is_archived = False).first()
+            existing_user = User.query.filter_by(email=email, is_archived = False).first()
             if existing_user:
                 return jsonify({'message': 'Email already exists', 'status': 409}), 409 
             
@@ -333,11 +332,27 @@ class UserController:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
             company_id = self.token.get('company_id')
+            if not company_id:
+                return jsonify({'message': 'Invalid token: company_id missing', 'status': 400}), 400
+            
+            sort_order = request.args.get('order', 'desc').lower()  
+            user_name = request.args.get('name', type=str) 
+            is_active = request.args.get('is_active', type=str)
+
+            if sort_order not in ['asc', 'desc']:
+                return jsonify({'message': 'Invalid sort_order value. Use "asc" or "desc".', 'status': 400}), 400
+
+            if is_active is not None:
+                if is_active.lower() not in ['true', 'false']:
+                    return jsonify({'message': 'Invalid is_active value. Use "true" or "false".', 'status': 400}), 400
+                is_active_bool = is_active.lower() == 'true'
+            else:
+                is_active_bool = None
 
             supervisor_alias = db.aliased(User)
             approver_alias = db.aliased(User)
 
-            users = db.session.query(
+            query = db.session.query(
                 User.id,
                 User.firstname,
                 User.lastname,
@@ -357,8 +372,21 @@ class UserController:
             .filter(
                 User.company_id == company_id,
                 User.is_archived == False
-            ).order_by(User.created_date.desc()).all()
+            )
 
+            if user_name:
+                full_name = func.concat(User.firstname,' ',User.lastname)
+                query = query.filter(full_name.ilike(f'%{user_name}%'))
+
+            if is_active_bool is not None:
+                query = query.filter(User.is_active == is_active_bool)
+
+            if sort_order == 'asc':
+                query = query.order_by(User.created_date.asc(), User.created_time.asc())
+            else:
+                query = query.order_by(User.created_date.desc(), User.created_time.desc())
+
+            users = query.all()
             if not users:
                 return jsonify({'message': 'No users found for this company', 'status': 404}), 404
 
@@ -388,7 +416,7 @@ class ClientController:
 
     def __init__(self):
         self.db_helper = DbHelper()
-        self.auth = AuthorizationHelper()
+        self.auth = AuthorizationHelper()                    
         self.token = self.auth.get_jwt_token()
 
     def add_client(self):
@@ -416,6 +444,7 @@ class ClientController:
             
             client = Client(firstname=firstname, lastname=lastname, email=email, phone=phone, company_id=company_id)
             self.db_helper.add_record(client)
+
             return jsonify({'message': 'Client added successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -449,6 +478,7 @@ class ClientController:
                 if key != 'id' and value:
                     setattr(client, key, value)
             self.db_helper.update_record()
+
             return jsonify({'message': 'Client updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -480,12 +510,42 @@ class ClientController:
     def client_list(self):
         try:
             company_id = self.token.get('company_id')
+            if not company_id:
+                return jsonify({'message': 'Invalid token: company_id missing', 'status': 400}), 400
+            
+            sort_order = request.args.get('order', 'desc').lower()  
+            client_name = request.args.get('client', type=str) 
+            is_active = request.args.get('is_active', type=str)
 
-            clients = Client.query.filter_by(company_id=company_id, is_archived=False).order_by(Client.created_date.desc()).all()
+            if sort_order not in ['asc', 'desc']:
+                return jsonify({'message': 'Invalid sort_order value. Use "asc" or "desc".', 'status': 400}), 400
 
+            if is_active is not None:
+                if is_active.lower() not in ['true', 'false']:
+                    return jsonify({'message': 'Invalid is_active value. Use "true" or "false".', 'status': 400}), 400
+                is_active_bool = is_active.lower() == 'true'
+            else:
+                is_active_bool = None
+
+            query = Client.query.filter_by(company_id=company_id, is_archived=False)
+
+            
+            if client_name:
+                full_name = func.concat(Client.firstname,' ',Client.lastname)
+                query = query.filter(full_name.ilike(f'%{client_name}%'))
+
+            if is_active_bool is not None:
+                query = query.filter(Client.is_active == is_active_bool)
+
+            if sort_order == 'asc':
+                query = query.order_by(Client.created_date.asc(), Client.created_time.asc())
+            else:
+                query = query.order_by(Client.created_date.desc(), Client.created_time.desc())
+
+            clients = query.all()
             if not clients:
-                return jsonify({'message': 'No data found', 'status': 404}), 404
-
+                return jsonify({'message': 'No client found in this company', 'status': 404}), 404
+            
             client_list = []
             for client in clients:
                 client_list.append({
@@ -502,10 +562,8 @@ class ClientController:
                 'clients': client_list,
                 'status': 200
             }
-
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
-
 
 class ProjectController:
 
@@ -531,6 +589,23 @@ class ProjectController:
             if existing_project:
                 return jsonify({'message': 'Project already exists', 'status': 409}), 409
 
+            project = Project(is_active=True)
+            for key, value in data.items():
+                if hasattr(Project, key): 
+                    setattr(project, key, value)
+
+            self.db_helper.add_record(project)
+
+            return jsonify({'message': 'Project added successfully', 'status': 201}), 201
+        except Exception as e:
+            return jsonify({'message': str(e), 'status': 500}), 500
+        
+    def add_duplicate_project(self):
+        try:
+            if not self.token:
+                return jsonify({'message': 'Token not found', 'status': 401}), 401
+            
+            data = request.get_json()
             project = Project(is_active=True)
             for key, value in data.items():
                 if hasattr(Project, key): 
@@ -580,14 +655,29 @@ class ProjectController:
             return jsonify({'message': 'Project deleted successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
-        
+      
     def project_list(self):
         try:
             company_id = self.token.get('company_id')
             if not company_id:
                 return jsonify({'message': 'Invalid token: company_id missing', 'status': 400}), 400
             
-            projects = db.session.query(
+            sort_order = request.args.get('order', 'desc').lower()  
+            project_name = request.args.get('project', type=str) 
+            is_active = request.args.get('is_active', type=str)   
+            client_name = request.args.get('client', type=str)
+
+            if sort_order not in ['asc', 'desc']:
+                return jsonify({'message': 'Invalid sort_order value. Use "asc" or "desc".', 'status': 400}), 400
+
+            if is_active is not None:
+                if is_active.lower() not in ['true', 'false']:
+                    return jsonify({'message': 'Invalid is_active value. Use "true" or "false".', 'status': 400}), 400
+                is_active_bool = is_active.lower() == 'true'
+            else:
+                is_active_bool = None
+
+            query = db.session.query(
                 Project.id, 
                 Project.name,
                 Project.start_date, 
@@ -596,9 +686,28 @@ class ProjectController:
                 Client.id.label('client_id'), 
                 Client.firstname, 
                 Client.lastname
-                ).join(Client, Project.client_id == Client.id).filter(
-                    Client.company_id == company_id, Project.is_archived == False).order_by(Project.created_date.desc()).all()
+            ).join(Client, Project.client_id == Client.id).filter(
+                Client.company_id == company_id,
+                Project.is_archived == False
+            )
+
+            if project_name:
+                query = query.filter(Project.name.ilike(f'%{project_name}%'))
+
+            if client_name:
+                full_name = func.concat(Client.firstname,' ',Client.lastname)
+                query = query.filter(full_name.ilike(f'%{client_name}%'))
             
+            if is_active_bool is not None:
+                query = query.filter(Project.is_active == is_active_bool)
+
+            if sort_order == 'asc':
+                query = query.order_by(Project.created_date.asc(), Project.created_time.asc())
+            else:
+                query = query.order_by(Project.created_date.desc(), Project.created_time.desc())
+
+            projects = query.all()
+
             if not projects:
                 return jsonify({'message': 'No projects found for this company', 'status': 404}), 404
 
@@ -613,12 +722,10 @@ class ProjectController:
                     'client_id': str(project.client_id),
                     'client_name': f'{project.firstname} {project.lastname}'
                 })
-
             return {
                 'projects': project_list,
                 'status': 200
             }
-
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -652,6 +759,22 @@ class TaskController:
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
+    def add_duplicate_task(self):
+        try:
+            if not self.token:
+                return jsonify({'message': 'Token not found', 'status': 401}), 401
+            
+            data = request.get_json()
+            task = Task(is_active=True)
+            for key, value in data.items():
+                if hasattr(Task, key): 
+                    setattr(task, key, value)
+
+            self.db_helper.add_record(task)
+            return jsonify({'message': 'Task added successfully', 'status': 201}), 201
+        except Exception as e:
+            return jsonify({'message': str(e), 'status': 500}), 500
+        
     def update_task(self):
         try:
             data = request.get_json()
@@ -694,8 +817,25 @@ class TaskController:
     def task_list(self):
         try:
             company_id = self.token.get('company_id')
+            if not company_id:
+                return jsonify({'message': 'Invalid token: company_id missing', 'status': 400}), 400
             
-            tasks = db.session.query(
+            sort_order = request.args.get('order', 'desc').lower()  
+            task_name = request.args.get('task', type=str) 
+            is_active = request.args.get('is_active', type=str)
+            project_name = request.args.get('project', type=str)
+
+            if sort_order not in ['asc', 'desc']:
+                return jsonify({'message': 'Invalid sort_order value. Use "asc" or "desc".', 'status': 400}), 400
+
+            if is_active is not None:
+                if is_active.lower() not in ['true', 'false']:
+                    return jsonify({'message': 'Invalid is_active value. Use "true" or "false".', 'status': 400}), 400
+                is_active_bool = is_active.lower() == 'true'
+            else:
+                is_active_bool = None
+            
+            query = db.session.query(
                 Task.id,
                 Task.name,
                 Task.start_date,
@@ -709,8 +849,25 @@ class TaskController:
             ).join(Project, Task.project_id == Project.id).join(Client, Project.client_id == Client.id).filter(
                 Client.company_id == company_id,
                 Task.is_archived == False
-            ).order_by(Task.created_date.desc()).all()
+            )
+
+            if task_name:
+                full_name = func.concat(Task.name)
+                query = query.filter(full_name.ilike(f'%{task_name}%'))
+
+            if project_name:
+                full_name = func.concat(Project.name)
+                query = query.filter(full_name.ilike(f'%{project_name}%'))
             
+            if is_active_bool is not None:
+                query = query.filter(Task.is_active == is_active_bool)
+
+            if sort_order == 'asc':
+                query = query.order_by(Task.created_date.asc(), Task.created_time.asc())
+            else:
+                query = query.order_by(Task.created_date.desc(), Task.created_time.desc())
+
+            tasks = query.all()
             if not tasks:
                 return jsonify({'message': 'No tasks found for this company', 'status': 404}), 404
 
@@ -848,9 +1005,27 @@ class TimesheetController:
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
-            timesheets = Timesheet.query.filter_by(user_id=user.id, is_archived = False).order_by(Timesheet.created_date.desc()).all()
-            timesheet_list = []
+            sort_order = request.args.get('order', 'desc').lower()  
 
+            if sort_order not in ['asc', 'desc']:
+                return jsonify({'message': 'Invalid sort_order value. Use "asc" or "desc".', 'status': 400}), 400
+
+            query = Timesheet.query.filter_by(user_id=user.id, is_archived = False)
+
+            filter_value = request.args.get('filter')
+            if filter_value:
+                query = query.filter(Timesheet.name.ilike(f'%{filter_value}%'))
+
+            if sort_order == 'asc':
+                query = query.order_by(Timesheet.created_date.asc(), Timesheet.created_time.asc())
+            else:
+                query = query.order_by(Timesheet.created_date.desc(), Timesheet.created_time.desc())
+
+            timesheets = query.all()
+            if not timesheets:
+                return jsonify({'message': 'No timesheets found for this user', 'status': 200}), 200
+            
+            timesheet_list = []
             for timesheet in timesheets:
                 timesheet_list.append({
                     'id': str(timesheet.id),
@@ -873,31 +1048,6 @@ class TaskHourController:
         self.db_helper = DbHelper()
         self.auth = AuthorizationHelper()
         self.token = self.auth.get_jwt_token()
-
-    def add_taskhours(self):
-        try:
-            data = request.get_json()
-            required_fields = ['values', 'task_id', 'timesheet_id']
-            
-            if not data or any(field not in data for field in required_fields):
-                return jsonify({'message': 'Invalid input: values, task_id, and timesheet_id are required', 'status': 400}), 400
-
-            values = data['values']
-            if len(values) != 7:
-                return jsonify({'message': 'Values array must have exactly 7 elements', 'status': 400}), 400
-
-            task_id = data['task_id']
-            timesheet_id = data['timesheet_id']
-
-            existing_meta = TaskHours.query.filter_by(task_id=task_id, timesheet_id=timesheet_id).first()
-            if existing_meta:
-                return jsonify({'message': 'TaskHours already exists', 'status': 409}), 409
-            
-            meta = TaskHours(values=values, task_id=task_id, timesheet_id=timesheet_id)    
-            self.db_helper.add_record(meta)
-            return jsonify({'message': 'TaskHours added successfully', 'status': 201})
-        except Exception as e:
-            return jsonify({'message': str(e), 'status': 500}), 500
         
     def add_taskhours(self):
         try:
@@ -980,20 +1130,34 @@ class TaskHourController:
             
             timesheet_id = data['timesheet_id']
             
-            timesheet = Timesheet.query.filter(Timesheet.id == timesheet_id, user_id==user_id).first()
+            timesheet = Timesheet.query.filter(Timesheet.id == timesheet_id, Timesheet.user_id==user_id, Timesheet.is_archived == False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
 
-            taskhours = TaskHours.query.filter_by(timesheet_id=timesheet_id, is_active=True).order_by(TaskHours.created_date.desc()).all()
-            taskhour_list = []
+            sort_order = request.args.get('order', 'desc').lower()
+
+            if sort_order not in ['asc', 'desc']:
+                return jsonify({'message': 'Invalid sort_order value. Use "asc" or "desc".', 'status': 400}), 400
+
+            query = TaskHours.query.filter_by(timesheet_id=timesheet_id, is_active=True)
+
+            if sort_order == 'asc':
+                query = query.order_by(TaskHours.created_date.asc(), TaskHours.created_time.asc())
+            else:
+                query = query.order_by(TaskHours.created_date.desc(), TaskHours.created_time.desc())
+
+            taskhours = query.all()
+            if not taskhours:
+                return jsonify({'message': 'No taskhours found for this timesheet', 'status': 200}), 200
             
+            taskhour_list = []
             for taskhour in taskhours:
                 timesheet = Timesheet.query.filter(Timesheet.id == taskhour.timesheet_id).first()
                 task = Task.query.filter(Task.id == taskhour.task_id).first()
                 project = Project.query.filter(Project.id == task.project_id).first()
                 client = Client.query.filter(Client.id == project.client_id).first()
                 taskhour_list.append({
-                    'id': str(taskhour.id),
+                    'id': str(taskhour.id),                               
                     'mon' : taskhour.values[0],
                     'tue' : taskhour.values[1],
                     'wed' : taskhour.values[2],
@@ -1229,10 +1393,4 @@ class ApproverController:
                 return jsonify({'message': 'Timesheets and approver retrieved successfully', 'timesheets': timesheet_list, 'status': 200})
             
         except Exception as e:
-            return jsonify({'message': str(e), 'status': 500}), 500
-        
-    
-            
-            
-            
-
+            return jsonify({'message': str(e), 'status': 500}), 500                          

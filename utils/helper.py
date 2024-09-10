@@ -138,7 +138,7 @@ class SesHelper:
                 }
             )
             print("Email send successfully")
-            return "email send successfully"
+            return "Email send successfully"
         except Exception as e:
             print(f"An error occurred: {e}")
             return str(e)
