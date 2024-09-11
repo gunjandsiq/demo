@@ -333,18 +333,65 @@ def approver_list():
         return approver.approver_list()
     except Exception as e:
         return jsonify({'message': str(e)}), 500
-
+    
 @api.route('/metadata', methods=['GET'])
 def metadata():
     try:
-        client = ClientController()
-        project = ProjectController()
-        task = TaskController()
-        timesheet = TimesheetController()
+        client_controller = ClientController()
+        project_controller = ProjectController()
+        task_controller = TaskController()
+        timesheet_controller = TimesheetController()
 
-        return jsonify(client.client_list(), project.project_list(), task.task_list(), timesheet.timesheet_list())
+        data = {
+            'clients': [],
+            'projects': [],
+            'tasks': [],
+            'timesheets': []
+        }
+
+        try:
+            client_result = client_controller.client_list()
+            if isinstance(client_result, list):
+                data['clients'] = client_result
+            elif hasattr(client_result, 'json') and isinstance(client_result.json, dict):
+                data['clients'] = client_result.json.get('clients', [])
+        except Exception as e:
+            data['clients'] = {'error': str(e)}
+
+        try:
+            project_result = project_controller.project_list()
+            if isinstance(project_result, list):
+                data['projects'] = project_result
+            elif hasattr(project_result, 'json') and isinstance(project_result.json, dict):
+                data['projects'] = project_result.json.get('projects', [])
+        except Exception as e:
+            data['projects'] = {'error': str(e)}
+
+        try:
+            task_result = task_controller.task_list()
+            if isinstance(task_result, list):
+                data['tasks'] = task_result
+            elif hasattr(task_result, 'json') and isinstance(task_result.json, dict):
+                data['tasks'] = task_result.json.get('tasks', [])
+        except Exception as e:
+            data['tasks'] = {'error': str(e)}
+
+        try:
+            timesheet_result = timesheet_controller.timesheet_list()
+            if isinstance(timesheet_result, list):
+                data['timesheets'] = timesheet_result
+            elif hasattr(timesheet_result, 'json') and isinstance(timesheet_result.json, dict):
+                data['timesheets'] = timesheet_result.json.get('timesheets', [])
+        except Exception as e:
+            data['timesheets'] = {'error': str(e)}
+
+        return jsonify({'message': data, 'status': 200}), 200
+
     except Exception as e:
         return jsonify({'message': str(e)}), 500
+
+
+
 
     
 

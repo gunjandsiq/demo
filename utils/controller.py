@@ -558,10 +558,10 @@ class ClientController:
                     'is_active': client.is_active
                 })
 
-            return {
+            return jsonify({
                 'clients': client_list,
                 'status': 200
-            }
+            })
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -722,10 +722,10 @@ class ProjectController:
                     'client_id': str(project.client_id),
                     'client_name': f'{project.firstname} {project.lastname}'
                 })
-            return {
+            return jsonify({
                 'projects': project_list,
                 'status': 200
-            }
+            })
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -885,10 +885,10 @@ class TaskController:
                     'is_active': task.is_active
                 })
 
-            return {
+            return jsonify({
                 'tasks': task_list,
                 'status': 200
-            }
+            })
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -1035,10 +1035,10 @@ class TimesheetController:
                     'is_active': timesheet.is_active,
                     'approval': timesheet.approval.value if timesheet.approval else None
                 })
-            return {
+            return jsonify({
                 'timesheets': timesheet_list,
                'status': 200
-            }
+            })
         except Exception as e:          
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -1393,4 +1393,6 @@ class ApproverController:
                 return jsonify({'message': 'Timesheets and approver retrieved successfully', 'timesheets': timesheet_list, 'status': 200})
             
         except Exception as e:
-            return jsonify({'message': str(e), 'status': 500}), 500                          
+            return jsonify({'message': str(e), 'status': 500}), 500
+
+
