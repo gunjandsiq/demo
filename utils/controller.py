@@ -503,7 +503,7 @@ class ClientController:
             client.is_archived = True
             client.is_active = False
             self.db_helper.update_record()
-            return jsonify({'message': 'Client deleted successfully', 'status': 201})
+            return jsonify({'message': 'Client deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -633,7 +633,7 @@ class ProjectController:
                 if value:
                     setattr(project, key, value)
             self.db_helper.update_record()
-            return jsonify({'message': 'Project updated successfully', 'status': 201})
+            return jsonify({'message': 'Project updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -652,7 +652,7 @@ class ProjectController:
             project.is_archived = True
             project.is_active = False
             self.db_helper.update_record()
-            return jsonify({'message': 'Project deleted successfully', 'status': 201})
+            return jsonify({'message': 'Project deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
       
@@ -791,7 +791,7 @@ class TaskController:
                 if value:
                     setattr(task, key, value)
             self.db_helper.update_record()
-            return jsonify({'message': 'Task updated successfully', 'status': 201})
+            return jsonify({'message': 'Task updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -810,7 +810,7 @@ class TaskController:
             task.is_archived = True
             task.is_active = False
             self.db_helper.update_record()
-            return jsonify({'message': 'Task deleted successfully', 'status': 201})
+            return jsonify({'message': 'Task deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -958,7 +958,7 @@ class TimesheetController:
                     if value:
                         setattr(timesheet, key, value)
                 self.db_helper.update_record()
-                return jsonify({'message': 'Timesheet updated successfully', 'status': 201})
+                return jsonify({'message': 'Timesheet updated successfully', 'status': 200})
             else:
                 return jsonify({'message': 'Cannot update a timesheet that is not in draft or rejected state', 'status': 400})
         except Exception as e:
@@ -1098,7 +1098,7 @@ class TaskHourController:
                     setattr(taskhours, key, value)
 
             self.db_helper.update_record()
-            return jsonify({'message': 'TaskHours updated successfully', 'status': 201})
+            return jsonify({'message': 'TaskHours updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -1117,7 +1117,7 @@ class TaskHourController:
             
             taskhours.is_active = False
             self.db_helper.delete_record() 
-            return jsonify({'message': 'TaskHours deleted successfully', 'status': 201})
+            return jsonify({'message': 'TaskHours deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
