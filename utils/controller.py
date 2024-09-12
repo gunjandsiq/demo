@@ -195,7 +195,13 @@ class CompanyController:
                 return jsonify({'message': 'Company not found', 'status': 404}), 404
 
             if 'name' in data:
-                company.name = data['name']
+                new_name = data['name']
+
+                existing_company = Company.query.filter_by(name=new_name, is_archived=False).first()
+                if existing_company and existing_company.id != company_id:
+                    return jsonify({'message': 'A company with the same name already exists.', 'status': 400}), 400
+                
+                company.name = new_name
 
             self.db_helper.update_record()
             return jsonify({'message': 'Company updated successfully', 'status': 200})
@@ -257,9 +263,9 @@ class UserController:
                 if len(phone) != 10 or not phone.isdigit():
                     return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
 
-            existing_user = User.query.filter_by(email=email, is_archived = False).first()
+            existing_user = User.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
             if existing_user:
-                return jsonify({'message': 'Email already exists', 'status': 409}), 409 
+                return jsonify({'message': 'User already exists with this email', 'status': 409}), 409 
             
             user = User(firstname=firstname, lastname=lastname, role=role, email=email, phone=phone, gender=gender, password=hashed_password, company_id=company_id, supervisor_id=supervisor_id, approver_id=approver_id)
             self.db_helper.add_record(user) 
@@ -631,8 +637,15 @@ class ProjectController:
             if not project:
                 return jsonify({'message': 'Project not found', 'status': 404}), 404
             
+            if 'name' in data:
+                new_name = data['name']
+
+                existing_project = Project.query.filter_by(name=new_name, is_archived=False).first()
+                if existing_project and existing_project.id != project_id:
+                    return jsonify({'message': 'A project with the same name already exists.', 'status': 400}), 400
+            
             for key, value in data.items():
-                if value:
+                if key != 'id' and value:
                     setattr(project, key, value)
             self.db_helper.update_record()
             return jsonify({'message': 'Project updated successfully', 'status': 200})
@@ -789,8 +802,15 @@ class TaskController:
             if not task:
                 return jsonify({'message': 'Task not found', 'status': 404}), 404
             
+            if 'name' in data:
+                new_name = data['name']
+
+                existing_task = Task.query.filter_by(name=new_name, is_archived=False).first()
+                if existing_task and existing_task.id != task_id:
+                    return jsonify({'message': 'A task with the same name already exists.', 'status': 400}), 400
+            
             for key, value in data.items():
-                if value:
+                if key != 'id' and value:
                     setattr(task, key, value)
             self.db_helper.update_record()
             return jsonify({'message': 'Task updated successfully', 'status': 200})
