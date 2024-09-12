@@ -46,13 +46,13 @@ class PasswordHelper:
         try:
             return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         except Exception as e:
-            return jsonify({'message': 'Error hashing password error'}), 500
+            return jsonify({'message': 'Error hashing password error', 'status': 500}), 500
 
     def check_password(self,password, hashed_password):
         try:
             return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
         except Exception as e:
-            return jsonify({'message': 'Error checking password error'}), 500
+            return jsonify({'message': 'Error checking password error', 'status': 500}), 500
         
 class CodeHelper:
 
@@ -117,7 +117,7 @@ class AuthorizationHelper:
                 'user_id': user_id
             }
         except Exception as e:
-            return jsonify({'message': 'Error getting token error'}), 500
+            return jsonify({'message': 'Error getting token error', 'status': 500}), 500
         
 class SesHelper:
 
@@ -142,3 +142,4 @@ class SesHelper:
         except Exception as e:
             print(f"An error occurred: {e}")
             return str(e)
+

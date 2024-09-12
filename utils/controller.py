@@ -1,4 +1,4 @@
-from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity, jwt_required
+from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity
 from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval
 from flask import jsonify, request, url_for
 from sqlalchemy import func
@@ -80,17 +80,19 @@ class Controller:
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
         
-    @jwt_required(refresh=True)
     def refresh_token(self):
-        current_user = get_jwt_identity()
-        user = User.query.filter_by(email=current_user, is_archived = False).first()
-        claims = {
-            'user_id': str(user.id),
-            'company_id': str(user.company_id),
-            'role': user.role
-        }
-        new_access_token = self.authentication_helper.create_access_token(current_user, claims)
-        return jsonify(access_token=new_access_token), 200
+        try:
+            current_user = get_jwt_identity()
+            user = User.query.filter_by(email=current_user, is_archived = False).first()
+            claims = {
+                'user_id': str(user.id),
+                'company_id': str(user.company_id),
+                'role': user.role
+            }
+            new_access_token = self.authentication_helper.create_access_token(current_user, claims)                      
+            return jsonify(access_token=new_access_token), 200
+        except Exception as e:
+            return jsonify({'message': str(e), 'status': 500}), 500
         
     def forget_password(self):
         try:
@@ -1394,5 +1396,7 @@ class ApproverController:
             
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
+
+
 
 
