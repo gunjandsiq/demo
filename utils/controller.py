@@ -71,9 +71,16 @@ class Controller:
 
             if not self.password_helper.check_password(password, user.password):
                 return jsonify({'message': 'Incorrect email or password', 'status': 401}), 401
+            
+            claims = {
+                'user_name': user.firstname,
+                'user_id': str(user.id),
+                'company_id': str(user.company_id),
+                'role': user.role
+            }
 
-            access_token = self.authentication_helper.create_access_token(user.email, {'role': user.role, 'company_id': str(user.company_id), 'user_id': str(user.id)})
-            refresh_token = self.authentication_helper.create_refresh_token(user.email, {'role': user.role, 'company_id': str(user.company_id), 'user_id': str(user.id)})
+            access_token = self.authentication_helper.create_access_token(user.email, claims)
+            refresh_token = self.authentication_helper.create_refresh_token(user.email, claims)
             return jsonify({'access_token': access_token,
                             'refresh_token': refresh_token,
                             'status': 200})
@@ -86,6 +93,7 @@ class Controller:
             current_user = get_jwt_identity()
             user = User.query.filter_by(email=current_user, is_archived = False).first()
             claims = {
+                'user_name': user.firstname,
                 'user_id': str(user.id),
                 'company_id': str(user.company_id),
                 'role': user.role
