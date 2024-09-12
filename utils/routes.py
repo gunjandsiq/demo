@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from utils.models import db
-from utils.helper import jwt, jwt_required
+from utils.helper import jwt
 from utils.controller import UserController, ClientController, ProjectController, TaskController, TaskHourController, Controller, TimesheetController, CompanyController, ApproverController
 
 api = Blueprint('routes', __name__)
@@ -64,7 +64,6 @@ def login():
         return jsonify({'message': str(e)}), 500
    
 @api.route('/refreshtoken', methods=['POST'])
-@jwt_required(refresh= True)
 def refresh_token():
     try:    
         con = Controller()
@@ -93,7 +92,6 @@ def reset_password():
         return jsonify({'message': str(e), 'status': 500}), 500
     
 @api.route('/changepassword', methods=['POST'])
-@jwt_required()
 def change_password():
     try:    
         con = Controller()
@@ -102,7 +100,6 @@ def change_password():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/updatecompany', methods=['POST'])
-@jwt_required()
 def update_company():
     try:
         company = CompanyController()
@@ -111,7 +108,6 @@ def update_company():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/deletecompany', methods=['POST'])
-@jwt_required()
 def delete_company():
     try:
         company = CompanyController()
@@ -120,7 +116,6 @@ def delete_company():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/adduser', methods=['POST'])
-@jwt_required()
 def add_user():
     try:
         user = UserController()
@@ -129,7 +124,6 @@ def add_user():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/updateuser', methods=['POST'])
-@jwt_required()
 def update_user():
     try:
         user = UserController()
@@ -138,7 +132,6 @@ def update_user():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/deleteuser', methods=['POST'])
-@jwt_required()
 def delete_user():
     try:
         user = UserController()
@@ -147,7 +140,6 @@ def delete_user():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/userlist', methods=['GET'])
-@jwt_required()
 def user_list():
     try:
         user = UserController()
@@ -156,7 +148,6 @@ def user_list():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/addclient', methods=['POST'])
-@jwt_required()
 def add_client():
     try:
         client = ClientController()
@@ -165,7 +156,6 @@ def add_client():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/updateclient', methods=['POST'])
-@jwt_required()
 def update_client():
     try:
         client = ClientController()
@@ -174,7 +164,6 @@ def update_client():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/deleteclient', methods=['POST'])
-@jwt_required()
 def delete_client():
     try:
         client = ClientController()
@@ -183,7 +172,6 @@ def delete_client():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/clientlist', methods=['GET'])
-@jwt_required()
 def client_list():
     try:
         client = ClientController()
@@ -192,7 +180,6 @@ def client_list():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/addproject', methods=['POST'])
-@jwt_required()
 def add_project():
     try:
         project = ProjectController()
@@ -201,7 +188,6 @@ def add_project():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/addduplicateproject', methods=['POST'])   
-@jwt_required()
 def duplicate_project():
     try:
         project = ProjectController()
@@ -210,7 +196,6 @@ def duplicate_project():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/updateproject', methods=['POST'])
-@jwt_required()
 def update_project():
     try:
         project = ProjectController()
@@ -219,7 +204,6 @@ def update_project():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/deleteproject', methods=['POST'])
-@jwt_required()
 def delete_project():
     try:
         project = ProjectController()
@@ -228,7 +212,6 @@ def delete_project():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/projectlist', methods=['GET'])
-@jwt_required()
 def project_list():
     try:
         project = ProjectController()
@@ -237,7 +220,6 @@ def project_list():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/addtask', methods=['POST'])
-@jwt_required()
 def add_task():
     try:
         task = TaskController()
@@ -246,7 +228,6 @@ def add_task():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/addduplicatetask', methods=['POST'])
-@jwt_required()
 def duplicate_task():
     try:
         task = TaskController()
@@ -255,7 +236,6 @@ def duplicate_task():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/updatetask', methods=['POST'])
-@jwt_required()
 def update_task():
     try:
         task = TaskController()
@@ -264,7 +244,6 @@ def update_task():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/deletetask', methods=['POST'])
-@jwt_required()
 def delete_task():
     try:
         task = TaskController()
@@ -273,7 +252,6 @@ def delete_task():
         return jsonify({'message': str(e)}), 500   
 
 @api.route('/tasklist', methods=['GET'])
-@jwt_required()
 def task_list():
     try:
         task = TaskController()
@@ -282,7 +260,6 @@ def task_list():
         return jsonify({'message': str(e)}), 500  
     
 @api.route('/addtimesheet', methods=['POST'])
-@jwt_required()
 def add_timesheet():
     try:
         timesheet = TimesheetController()
@@ -291,7 +268,6 @@ def add_timesheet():
         return jsonify({'message': str(e)}), 500 
 
 @api.route('/updatetimesheet', methods=['POST'])
-@jwt_required()
 def update_timesheet():
     try:
         timesheet = TimesheetController()
@@ -300,7 +276,6 @@ def update_timesheet():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/deletetimesheet' , methods=['POST'])
-@jwt_required()
 def delete_timesheet():
     try:
         timesheet = TimesheetController()
@@ -309,7 +284,6 @@ def delete_timesheet():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/timesheetlist', methods=['GET'])
-@jwt_required()
 def timesheet_list():
     try:
         timesheet = TimesheetController()
@@ -318,7 +292,6 @@ def timesheet_list():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/addtaskhours', methods=['POST'])
-@jwt_required()
 def add_taskhours():
     try:
         taskhour = TaskHourController()
@@ -327,7 +300,6 @@ def add_taskhours():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/updatetaskhours', methods=['POST']) 
-@jwt_required()
 def update_taskhours():
     try:
         taskhour = TaskHourController()
@@ -335,8 +307,7 @@ def update_taskhours():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@api.route('/deletetaskhours', methods=['POST'])  
-@jwt_required() 
+@api.route('/deletetaskhours', methods=['POST'])   
 def delete_taskhours():
     try:
         taskhour = TaskHourController()
@@ -345,7 +316,6 @@ def delete_taskhours():
         return jsonify({'message': str(e)}), 500
 
 @api.route('/taskhourslist', methods=['POST'])
-@jwt_required()
 def taskhours_list():
     try:
         taskhour = TaskHourController()
@@ -354,7 +324,6 @@ def taskhours_list():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/approvalrequest', methods=['POST'])
-@jwt_required()
 def send_approval():
     try:
         app = ApproverController()
@@ -363,7 +332,6 @@ def send_approval():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/recallrequest', methods=['POST'])
-@jwt_required()
 def send_recall():
     try:
         recall = ApproverController()
@@ -372,7 +340,6 @@ def send_recall():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/approvetimesheet', methods=['POST'])
-@jwt_required()
 def approve_timesheet():
     try:
         approver = ApproverController()
@@ -381,7 +348,6 @@ def approve_timesheet():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/rejecttimesheet', methods=['POST'])
-@jwt_required()
 def reject_timesheet():
     try:
         approver = ApproverController()
@@ -390,7 +356,6 @@ def reject_timesheet():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/approverlist', methods=['GET'])
-@jwt_required()
 def approver_list():
     try:
         approver = ApproverController()
@@ -399,7 +364,6 @@ def approver_list():
         return jsonify({'message': str(e)}), 500
     
 @api.route('/metadata', methods=['GET'])
-@jwt_required()
 def metadata():
     try:
         client_controller = ClientController()

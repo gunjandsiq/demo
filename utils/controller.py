@@ -1,4 +1,4 @@
-from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity
+from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity, jwt_required
 from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval
 from flask import jsonify, request, url_for
 from sqlalchemy import func
@@ -80,6 +80,7 @@ class Controller:
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
         
+    @jwt_required(refresh= True)   
     def refresh_token(self):
         try:
             current_user = get_jwt_identity()
