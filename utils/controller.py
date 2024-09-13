@@ -1178,8 +1178,6 @@ class TaskHourController:
                 query = query.order_by(TaskHours.created_date.desc(), TaskHours.created_time.desc())
 
             taskhours = query.all()
-            if not taskhours:
-                return jsonify({'message': 'No taskhours found for this timesheet', 'status': 200}), 200
             
             taskhour_list = []
             for taskhour in taskhours:
