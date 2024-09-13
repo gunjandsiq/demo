@@ -1206,6 +1206,10 @@ class TaskHourController:
             'timesheet_details': {
                 'timesheet_id': str(timesheet.id),
                 'timesheet_name': timesheet.name if timesheet else None,
+                'start_date': timesheet.start_date.strftime('%Y-%m-%d'),
+                'end_date': timesheet.end_date.strftime('%Y-%m-%d'),
+                'is_active': timesheet.is_active,
+                'approval': timesheet.approval.value if timesheet.approval else None
             },
             'taskhours': taskhour_list,
             'status': 200,
