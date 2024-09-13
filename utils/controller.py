@@ -1183,10 +1183,10 @@ class TaskHourController:
             
             taskhour_list = []
             for taskhour in taskhours:
-                timesheet = Timesheet.query.filter(Timesheet.id == taskhour.timesheet_id).first()
                 task = Task.query.filter(Task.id == taskhour.task_id).first()
                 project = Project.query.filter(Project.id == task.project_id).first()
                 client = Client.query.filter(Client.id == project.client_id).first()
+
                 taskhour_list.append({
                     'id': str(taskhour.id),                               
                     'mon' : taskhour.values[0],
@@ -1202,14 +1202,16 @@ class TaskHourController:
                     'client_name': f'{client.firstname} {client.lastname}',
                     'project_id': str(project.id),  
                     'project_name': project.name,
-                    'is_active': taskhour.is_active,
-                    'timesheet_id': str(taskhour.timesheet_id),
-                    'timesheet_name': timesheet.name if timesheet else None,
+                    'is_active': taskhour.is_active
                 })               
-            return {
-                'taskhours': taskhour_list,
-                'status': 200
-            }
+            return jsonify({
+            'timesheet_details': {
+                'timesheet_id': str(timesheet.id),
+                'timesheet_name': timesheet.name if timesheet else None,
+            },
+            'taskhours': taskhour_list,
+            'status': 200,
+        }), 200
         except Exception as e:
             return jsonify({'message': str(e)}), 500
         
