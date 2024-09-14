@@ -1,5 +1,5 @@
 from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity, jwt_required
-from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval
+from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval, BlacklistToken
 from flask import jsonify, request, url_for
 from sqlalchemy import func
 
@@ -181,6 +181,32 @@ class Controller:
             self.db_helper.update_record()
 
             return jsonify({'message': 'Password changed successfully', 'status': 200})
+        except Exception as e:
+            return jsonify({'message': str(e), 'status': 500}), 500
+        
+    def logout(self):
+        try:
+            auth = AuthorizationHelper()
+            token = auth.get_jwt_token()
+            if not token:
+                return jsonify({'message': 'Authentication token is missing', 'status': 401}), 401
+
+            email = token.get('email')
+            company_id = token.get('company_id')
+            
+            user = User.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
+            if not user:
+                return jsonify({'message': 'User not found', 'status': 404}), 404
+            
+            token_jti = token.get('jti')
+            if not (token_jti):
+                return jsonify({'message': 'Failed to log out. Token invalidation failed', 'status': 500}), 500
+            
+            query = BlacklistToken(jti=token_jti)
+            self.db_helper.add_record(query)
+
+            return jsonify({'message': 'User logged out successfully', 'status': 200}), 200
+                    
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
         
@@ -439,7 +465,7 @@ class ClientController:
     def add_client(self):
         try:
             data = request.get_json()
-            required_fields = ['firstname', 'email']
+            required_fields = ['name', 'email']
             if not data or not all(data.get(key) for key in required_fields):
                 return jsonify({'message': 'Invalid input: All fields are required', 'status': 400}), 400
             
@@ -447,8 +473,7 @@ class ClientController:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
             company_id = self.token.get('company_id')
-            firstname = data['firstname']
-            lastname = data.get('lastname')
+            name = data['name']
             email = data['email']
             phone = data.get('phone')
 
@@ -459,7 +484,7 @@ class ClientController:
             if existing_client:
                 return jsonify({'message': 'Client already exists', 'status': 409}), 409 
             
-            client = Client(firstname=firstname, lastname=lastname, email=email, phone=phone, company_id=company_id)
+            client = Client(name=name, email=email, phone=phone, company_id=company_id)
             self.db_helper.add_record(client)
 
             return jsonify({'message': 'Client added successfully', 'status': 201})
@@ -548,8 +573,7 @@ class ClientController:
 
             
             if client_name:
-                full_name = func.concat(Client.firstname,' ',Client.lastname)
-                query = query.filter(full_name.ilike(f'%{client_name}%'))
+                query = query.filter(Client.name.ilike(f'%{client_name}%'))
 
             if is_active_bool is not None:
                 query = query.filter(Client.is_active == is_active_bool)
@@ -567,9 +591,7 @@ class ClientController:
             for client in clients:
                 client_list.append({
                     'id': str(client.id),
-                    'name': f'{client.firstname} {client.lastname}' if client.firstname and client.lastname else client.firstname,
-                    'firstname': client.firstname,
-                    'lastname': client.lastname,
+                    'name': client.name ,
                     'email': client.email,
                     'phone': client.phone,
                     'is_active': client.is_active

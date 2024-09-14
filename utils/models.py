@@ -81,8 +81,7 @@ class User(db.Model, TimeStamp):
 class Client(db.Model, TimeStamp):
     __tablename__ = 'client'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
-    firstname = db.Column(db.String(100), nullable=False)
-    lastname = db.Column(db.String(100))
+    name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(10))
     is_active = db.Column(db.Boolean, default=True, nullable=False)
@@ -152,3 +151,10 @@ class TaskHours(db.Model, TimeStamp):
 #     old_data = db.Column(db.JSON) 
 #     new_data = db.Column(db.JSON) 
 #     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id'), nullable=True) 
+
+class BlacklistToken(db.Model):
+    __tablename__ = 'blacklist_tokens'
+    
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
+    jti = db.Column(db.String(100), nullable=False)
+    blacklisted_on = db.Column(db.DateTime, nullable=False, default=datetime.now)

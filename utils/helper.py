@@ -1,5 +1,5 @@
 from flask import jsonify, Blueprint
-from utils.models import db
+from utils.models import db, BlacklistToken
 import bcrypt, boto3, os
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, create_refresh_token, jwt_required, get_jwt
 from itsdangerous import URLSafeTimedSerializer
@@ -93,6 +93,7 @@ class AuthorizationHelper:
             role = claims.get('role')
             company_id = claims.get('company_id')
             user_id = claims.get('user_id')
+            jti = claims.get('jti')
 
             if not identity:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
@@ -109,12 +110,15 @@ class AuthorizationHelper:
             if not user_id:
                 return jsonify({'message': 'Invalid token: user_id not found', 'status': 401}), 401
             
+            print(jti)
+            
             return {
                 'message': 'Access granted',
                 'email': identity,
                 'role': role,
                 'company_id': company_id,
-                'user_id': user_id
+                'user_id': user_id,
+                'jti': jti
             }
         except Exception as e:
             return jsonify({'message': 'Error getting token error', 'status': 500}), 500

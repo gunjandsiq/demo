@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from utils.models import db
+from utils.models import db, BlacklistToken
 from utils.helper import jwt
 from utils.controller import UserController, ClientController, ProjectController, TaskController, TaskHourController, Controller, TimesheetController, CompanyController, ApproverController
 
@@ -33,6 +33,11 @@ def revoked_token_callback(jwt_header, jwt_payload):
         "status": 403
     }), 403
 
+@jwt.token_in_blocklist_loader
+def check_if_token_in_blacklist(jwt_header, jwt_payload):
+    jti = jwt_payload['jti']
+    return BlacklistToken.query.filter_by(jti=jti).first() is not None
+
 @api.route('/')
 def server():
     return jsonify({'message': 'Server is up and running'})
@@ -60,6 +65,14 @@ def login():
     try:    
         con = Controller()
         return con.login()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
+@api.route('/logout', methods=['POST'])
+def logout():
+    try:    
+        con = Controller()
+        return con.logout()
     except Exception as e:
         return jsonify({'message': str(e)}), 500
    
