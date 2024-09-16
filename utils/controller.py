@@ -1159,6 +1159,10 @@ class TaskHourController:
                 task_id = entry['task_id']
                 timesheet_id = entry['timesheet_id']
 
+                timesheet = Timesheet.query.filter_by(id = timesheet_id).first()
+                if not timesheet or timesheet.approval not in [Approval.DRAFT, Approval.REJECTED]:
+                    return jsonify({'message': 'Cannot add taskhours for a timesheet that is not in draft or rejected state', 'status': 400}), 400
+
                 existing_taskhour = TaskHours.query.filter_by(task_id=task_id, timesheet_id=timesheet_id).first()
                 if existing_taskhour:
                     return jsonify({'message': f'TaskHours already exists for task_id {task_id}', 'status': 409}), 409
@@ -1184,7 +1188,7 @@ class TaskHourController:
                 return jsonify({'message': 'TaskHours not found', 'status': 404}), 404
             
             timesheet = Timesheet.query.filter_by(id=taskhours.timesheet_id).first()
-            if not timesheet or timesheet.approval!= Approval.DRAFT or timesheet.approval!= Approval.REJECTED:
+            if not timesheet or timesheet.approval not in [Approval.DRAFT, Approval.REJECTED]:
                 return jsonify({'message': 'Cannot update taskhours for a timesheet that is not in draft state', 'status': 400}), 400
             
             for key, value in data.items():
@@ -1465,6 +1469,46 @@ class ApproverController:
             else:
                 return jsonify({'message': 'Timesheet cannot be recall', 'status': 400}), 400
             
+        except Exception as e:
+            return jsonify({'message': str(e), 'status': 500}), 500
+        
+    def accept_recall_request(self):
+        try:
+            ses = SesHelper()
+            data = request.get_json()
+            required_fields = ['timesheet_id']
+            
+            if not data or any(field not in data for field in required_fields):
+                return jsonify({'message': 'Invalid input: timesheet_id required', 'status': 400}), 400
+
+            timesheet_id = data['timesheet_id']
+            user_id = self.token.get('user_id')
+
+            user = User.query.filter_by(id=user_id).first()
+            if not user:
+                return jsonify({'message': 'User not found', 'status': 404}), 404
+
+            approver = User.query.filter_by(id=user.approver_id).first()
+            if not approver:
+                return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
+            
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id).first()
+            if not timesheet:
+                return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
+            
+            timesheet.approval = Approval.DRAFT
+            self.db_helper.update_record()
+            
+            subject = 'Timesheet Recall Accepted'
+            body_html = f'''
+                <h1>Timesheet Recall Accepted</h1>
+                <p>Dear {user.firstname},</p>
+                <p>Your recall timesheet for the "{timesheet.name}" has been accepted.</p>
+                <p>Please review and make necessary adjustments.</p>'''
+            
+            ses.send_email(source=approver.email, destination=user.email, subject=subject, body_html=body_html)
+            return jsonify({'message': 'Recall request accepted successfully', 'status': 201})
+        
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
         

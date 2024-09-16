@@ -352,6 +352,14 @@ def send_recall():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     
+@api.route('/acceptrecallrequest', methods=['POST'])
+def accept_recall():
+    try:
+        recall = ApproverController()
+        return recall.accept_recall_request()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
 @api.route('/approvetimesheet', methods=['POST'])
 def approve_timesheet():
     try:
