@@ -12,6 +12,7 @@ class Controller:
 
     def register(self):
         try:
+            ses = SesHelper()
             data = request.get_json()
             required_fields = ['company_name', 'firstname', 'email', 'password', 'gender', 'phone']
             if not data or not all(data.get(key) for key in required_fields):
@@ -22,7 +23,7 @@ class Controller:
             lastname = data.get('lastname')
             role = data.get('role', 'Admin')
             email = data['email']
-            phone = data['phone'],
+            phone = data['phone']
             gender = data['gender']
             password = data['password']
 
@@ -47,6 +48,15 @@ class Controller:
 
             user = User(firstname=firstname, lastname=lastname, role=role, email=email, phone=phone, gender=gender, password=hashed_password, company_id=company.id)
             self.db_helper.add_record(user)
+            
+            reset_url = url_for('routes.login', _external=True)
+            subject = "Welcome to TimeChronos - Simplify your Time Management"
+            body_html = f"""
+            <h1>Welcome to TimeChronos!</h1>
+            <p>Thank you for signing up {user.firstname} for TimeChronos. We're excited to have you on board.</p>
+            <p>Please click on the link to login: <a href={reset_url}>{reset_url}</a></p>"""
+
+            ses.send_email(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
             if user.role == 'Admin':
                 user.supervisor_id = user.id
@@ -154,6 +164,7 @@ class Controller:
 
     def change_password(self):
         try:
+            ses = SesHelper()
             auth = AuthorizationHelper()
             token = auth.get_jwt_token()
             if not token:
@@ -179,6 +190,17 @@ class Controller:
             hashed_password = self.password_helper.hash_password(new_password)
             user.password = hashed_password
             self.db_helper.update_record()
+
+            subject = "Password change confirmation"
+            body_html = f"""
+            <p>Dear{user.firstname},</p>
+            <p>This is to confirm that the password of your account has been successfully changed. Your account is now secured with the new password that you have set.</p>
+            <p>If you did not change your password, please contact us immediately to report any unauthorized access to your account</p>
+            <p>Thank you for using our service.</p>
+            <p>Best Regards,</p>
+            <p>The TimeChronos Team</p>"""
+
+            ses.send_email(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
             return jsonify({'message': 'Password changed successfully', 'status': 200})
         except Exception as e:
@@ -270,6 +292,7 @@ class UserController:
 
     def add_user(self):
         try:
+            ses = SesHelper()
             password_helper = PasswordHelper()
             data = request.get_json()
             required_fields = ['firstname', 'email', 'role', 'password', 'gender','supervisor_id', 'approver_id']
@@ -304,6 +327,25 @@ class UserController:
             
             user = User(firstname=firstname, lastname=lastname, role=role, email=email, phone=phone, gender=gender, password=hashed_password, company_id=company_id, supervisor_id=supervisor_id, approver_id=approver_id)
             self.db_helper.add_record(user) 
+            login_url = url_for('routes.login', _external=True)
+
+            subject = "Timechronos Account Credentials"
+            body_html = f"""
+            <p>Dear{user.firstname},</p>
+            <p> I hope this  message finds you well.</p>
+            <p> I am pleased to inform you that an account has been successfully created for you on Timechronos by an administrator. To access your account, please use the following credentials:</p>
+                    <p> Username: {user.email}</p> 
+                    <p> Password: {password}</p>
+            <p>You can log in to your account by clicking the button below:</p>
+            <a href={login_url}>
+                <button type="button">Login</button>
+            </a>
+            <p>We are excited to have you on board and look forward to seeing you on Timechronos!</p>
+            <p>Best Regards,</p>
+            <p>The TimeChronos Team</p>"""
+            
+            ses.send_email(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
+
             return jsonify({'message': 'User added successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -959,10 +1001,9 @@ class TimesheetController:
             if not self.token:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
-            email = self.token.get('email')
-            company_id = self.token.get('company_id')
+            user_id = self.token.get('user_id')
             
-            user = User.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
+            user = User.query.filter_by(id = user_id, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
@@ -971,11 +1012,11 @@ class TimesheetController:
             dimdate = DimDate.query.filter(DimDate.date_actual == date).first()
             name = f'Week {dimdate.week_of_year}, {dimdate.year_actual} Timesheet'
 
-            existing_timesheet = Timesheet.query.filter_by(name=name, user_id=user.id, is_archived = False).first()
+            existing_timesheet = Timesheet.query.filter_by(name=name, user_id=user_id, is_archived = False).first()
             if existing_timesheet:
                 return jsonify({'message': 'Timesheet already exists', 'status': 409}), 409
             
-            timesheet = Timesheet(name=name, start_date=dimdate.first_day_of_week, end_date=dimdate.last_day_of_week, user_id=user.id)
+            timesheet = Timesheet(name=name, start_date=dimdate.first_day_of_week, end_date=dimdate.last_day_of_week, user_id=user_id)
             self.db_helper.add_record(timesheet)
             return jsonify({'message': 'Timesheet added successfully', 'status': 201})
         except Exception as e:
@@ -1421,28 +1462,33 @@ class ApproverController:
             return jsonify({'message': str(e), 'status': 500}), 500
         
     def approver_list(self):
-        try:
+        try:    
             user_id = self.token.get('user_id')
-            user = User.query.filter_by(approver_id=user_id).first()
-            if not user:
+            users = User.query.filter_by(approver_id=user_id).all()
+            if not users:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
-            timesheets = Timesheet.query.filter_by(user_id=user.id).all()
-
-            if not timesheets:
-                return jsonify({'message': 'No timesheets found for this user', 'timesheets': [], 'status': 200}), 200
-            
             timesheet_list = []
-            for timesheet in timesheets:
-                timesheet_data = {
-                    'id': timesheet.id,
-                    'name': timesheet.name,
-                    'status': timesheet.approval.value, 
-                    'start_date': timesheet.start_date.strftime('%Y-%m-%d'),
-                    'end_date': timesheet.end_date.strftime('%Y-%m-%d'),
-                    'employee_name': f"{user.firstname} {user.lastname}" if user.firstname and user.lastname else user.firstname
-                }
-                timesheet_list.append(timesheet_data)
+            for appover in users:
+                timesheets = Timesheet.query.filter_by(approval = Approval.PENDING).all()
+
+                if not timesheets:
+                    return jsonify({'message': 'No timesheets found for approval', 'timesheets': [], 'status': 200}), 200
+            
+                for timesheet in timesheets:
+                    employee = User.query.get(timesheet.user_id)
+                    timesheet_data = {
+                        'id': timesheet.id,
+                        'name': timesheet.name,
+                        'status': timesheet.approval.value, 
+                        'start_date': timesheet.start_date.strftime('%Y-%m-%d'),
+                        'end_date': timesheet.end_date.strftime('%Y-%m-%d'),
+                        'employee_name': f"{employee.firstname} {employee.lastname}" if employee.firstname and employee.lastname else employee.firstname
+                    }
+                    timesheet_list.append(timesheet_data)
+                    
+                    if not timesheet_list:
+                        return jsonify({'message': 'No timesheets found for approval', 'timesheets': [], 'status': 200}), 200
             
                 return jsonify({'message': 'Timesheets and approver retrieved successfully', 'timesheets': timesheet_list, 'status': 200})
             
