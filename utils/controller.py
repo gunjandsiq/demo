@@ -1027,10 +1027,9 @@ class TimesheetController:
             if not self.token:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
-            email = self.token.get('email')
-            company_id = self.token.get('company_id')
-    
-            user = User.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
+            user_id = self.token.get('user_id')
+            
+            user = User.query.filter_by(id = user_id, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
@@ -1184,6 +1183,10 @@ class TaskHourController:
             if not taskhours:
                 return jsonify({'message': 'TaskHours not found', 'status': 404}), 404
             
+            timesheet = Timesheet.query.filter_by(id=taskhours.timesheet_id).first()
+            if not timesheet or timesheet.approval!= Approval.DRAFT or timesheet.approval!= Approval.REJECTED:
+                return jsonify({'message': 'Cannot update taskhours for a timesheet that is not in draft state', 'status': 400}), 400
+            
             for key, value in data.items():
                 if value:
                     setattr(taskhours, key, value)
@@ -1205,6 +1208,10 @@ class TaskHourController:
             taskhours = TaskHours.query.filter_by(id=taskhours_id).first()
             if not taskhours:
                 return jsonify({'message': 'TaskHours not found', 'status': 404}), 404
+            
+            timesheet = Timesheet.query.filter_by(id=taskhours.timesheet_id).first()
+            if not timesheet or timesheet.approval!= Approval.DRAFT:
+                return jsonify({'message': 'Cannot delete taskhours for a timesheet that is not in draft state', 'status': 400}), 400
             
             taskhours.is_active = False
             self.db_helper.delete_record(taskhours) 
