@@ -1207,7 +1207,7 @@ class TaskHourController:
                 return jsonify({'message': 'TaskHours not found', 'status': 404}), 404
             
             taskhours.is_active = False
-            self.db_helper.delete_record() 
+            self.db_helper.delete_record(taskhours) 
             return jsonify({'message': 'TaskHours deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -1409,7 +1409,7 @@ class ApproverController:
                     <p>A new timesheet has been requested by {user.firstname} {user.lastname}.</p>
                     <p>Please review and take the necessary action.</p>'''
             
-                ses.send_email(source='contact@digitalshelfiq.com', destination=approver.email, subject=subject, body_html=body_html)
+                ses.send_email(source=user.email, destination=approver.email, subject=subject, body_html=body_html)
                 return jsonify({'message': 'Approval request sent successfully', 'status': 201})
             
             else:
@@ -1453,7 +1453,7 @@ class ApproverController:
                 timesheet.approval = Approval.RECALLED
                 self.db_helper.update_record()
 
-                ses.send_email(source='contact@digitalshelfiq.com', destination=approver.email, subject=subject, body_html=body_html)
+                ses.send_email(source=user.email, destination=approver.email, subject=subject, body_html=body_html)
                 return jsonify({'message': 'Recall request sent successfully', 'status': 201})
             else:
                 return jsonify({'message': 'Timesheet cannot be recall', 'status': 400}), 400
@@ -1486,7 +1486,7 @@ class ApproverController:
                         'employee_name': f"{employee.firstname} {employee.lastname}" if employee.firstname and employee.lastname else employee.firstname
                     }
                     timesheet_list.append(timesheet_data)
-                    
+
                     if not timesheet_list:
                         return jsonify({'message': 'No timesheets found for approval', 'timesheets': [], 'status': 200}), 200
             
