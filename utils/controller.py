@@ -730,8 +730,7 @@ class ProjectController:
                 Project.end_date, 
                 Project.is_active, 
                 Client.id.label('client_id'), 
-                Client.firstname, 
-                Client.lastname
+                Client.name.label('client_name'), 
             ).join(Client, Project.client_id == Client.id).filter(
                 Client.company_id == company_id,
                 Project.is_archived == False
@@ -741,8 +740,7 @@ class ProjectController:
                 query = query.filter(Project.name.ilike(f'%{project_name}%'))
 
             if client_name:
-                full_name = func.concat(Client.firstname,' ',Client.lastname)
-                query = query.filter(full_name.ilike(f'%{client_name}%'))
+                query = query.filter(Client.name.ilike(f'%{client_name}%'))
             
             if is_active_bool is not None:
                 query = query.filter(Project.is_active == is_active_bool)
@@ -766,7 +764,7 @@ class ProjectController:
                     'end_date': project.end_date.strftime('%Y-%m-%d') if project.end_date else None,
                     'is_active': project.is_active,
                     'client_id': str(project.client_id),
-                    'client_name': f'{project.firstname} {project.lastname}'
+                    'client_name': project.client_name 
                 })
             return jsonify({
                 'projects': project_list,
@@ -897,8 +895,7 @@ class TaskController:
                 Project.id.label('project_id'),
                 Project.name.label('project_name'),
                 Client.id.label('client_id'),
-                Client.firstname,
-                Client.lastname
+                Client.name.label('client_name'),
             ).join(Project, Task.project_id == Project.id).join(Client, Project.client_id == Client.id).filter(
                 Client.company_id == company_id,
                 Task.is_archived == False
@@ -932,7 +929,7 @@ class TaskController:
                     'start_date': task.start_date.strftime('%Y-%m-%d') if task.start_date else None,
                     'end_date': task.end_date.strftime('%Y-%m-%d') if task.end_date else None,
                     'client_id': str(task.client_id),
-                    'client_name': f'{task.firstname} {task.lastname}',
+                    'client_name': task.client_name,
                     'project_id': str(task.project_id),
                     'project_name': task.project_name,
                     'is_active': task.is_active
@@ -1219,7 +1216,7 @@ class TaskHourController:
                     'task_id': str(taskhour.task_id),
                     'task_name': task.name, 
                     'client_id': str(client.id),
-                    'client_name': f'{client.firstname} {client.lastname}',
+                    'client_name': client.name,
                     'project_id': str(project.id),  
                     'project_name': project.name,
                     'is_active': taskhour.is_active
