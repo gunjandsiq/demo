@@ -1266,6 +1266,9 @@ class TaskHourController:
                 project = Project.query.filter_by(id=task.project_id, is_archived=False).first()
                 client = Client.query.filter_by(id=project.client_id, is_archived=False).first()
 
+                if not task or not project or not client:
+                    continue 
+
                 taskhour_list.append({
                     'id': str(taskhour.id),                               
                     'mon' : taskhour.values[0],
@@ -1382,7 +1385,7 @@ class ApproverController:
                 return jsonify({'message': 'Timesheet is already rejected', 'status': 409}), 409
             
             elif timesheet.approval == Approval.APPROVED:
-                return jsonify({'message': 'Timesheet cannot be rejected if it has been approved', 'status': 409}), 409
+                return jsonify({'message': 'Timesheet cannot be reject if it has been approved', 'status': 409}), 409
             
             else:
                 timesheet.approval = Approval.REJECTED
@@ -1482,9 +1485,10 @@ class ApproverController:
                 self.db_helper.update_record()
 
                 ses.send_email(source=user.email, destination=approver.email, subject=subject, body_html=body_html)
-                return jsonify({'message': 'Recall request sent successfully', 'status': 201})
             else:
-                return jsonify({'message': 'Timesheet cannot be recall', 'status': 400}), 400
+                return jsonify({'message': 'Timesheet cannot be accepted as it is not in recalled status', 'status': 400}), 400
+            
+            return jsonify({'message': 'Recall request accepted successfully', 'status': 201})
             
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -1514,17 +1518,21 @@ class ApproverController:
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
             
-            timesheet.approval = Approval.DRAFT
-            self.db_helper.update_record()
+            if timesheet.approval == Approval.RECALLED:
+                timesheet.approval = Approval.DRAFT
+                self.db_helper.update_record()
             
-            subject = 'Timesheet Recall Accepted'
-            body_html = f'''
-                <h1>Timesheet Recall Accepted</h1>
-                <p>Dear {user.firstname},</p>
-                <p>Your recall timesheet for the "{timesheet.name}" has been accepted.</p>
-                <p>Please review and make necessary adjustments.</p>'''
+                subject = 'Timesheet Recall Accepted'
+                body_html = f'''
+                    <h1>Timesheet Recall Accepted</h1>
+                    <p>Dear {user.firstname},</p>
+                    <p>Your recall timesheet for the "{timesheet.name}" has been accepted.</p>
+                    <p>Please review and make necessary adjustments.</p>'''
+                
+                ses.send_email(source=approver.email, destination=user.email, subject=subject, body_html=body_html)
+            else:
+                return jsonify({'message': 'Timesheet cannot be accepted as it is not in recalled status', 'status': 400}), 400
             
-            ses.send_email(source=approver.email, destination=user.email, subject=subject, body_html=body_html)
             return jsonify({'message': 'Recall request accepted successfully', 'status': 201})
         
         except Exception as e:
