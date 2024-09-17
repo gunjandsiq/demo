@@ -1197,8 +1197,14 @@ class TaskHourController:
             if not timesheet or timesheet.approval not in [Approval.DRAFT, Approval.REJECTED]:
                 return jsonify({'message': 'Cannot update taskhours for a timesheet that is not in draft state', 'status': 400}), 400
             
+            task_id = data.get('task_id')
+            if task_id:
+                existing_taskhour = TaskHours.query.filter_by(task_id=task_id, timesheet_id=taskhours.timesheet_id).first()
+                if existing_taskhour and existing_taskhour.id != taskhours_id:
+                    return jsonify({'message': f'TaskHours already exists for task_id {task_id}', 'status': 409}), 409
+            
             for key, value in data.items():
-                if value:
+                if hasattr(taskhours, key) and value is not None:
                     setattr(taskhours, key, value)
 
             self.db_helper.update_record()
