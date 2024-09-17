@@ -1360,12 +1360,13 @@ class ApproverController:
         try:
             ses = SesHelper()
             data = request.get_json()
-            required_fields = ['timesheet_id']
+            required_fields = ['timesheet_id', 'feedback']
             
             if not data or any(field not in data for field in required_fields):
-                return jsonify({'message': 'Invalid input: timesheet_id required', 'status': 400}), 400
+                return jsonify({'message': 'Invalid input: timesheet_id and feedback is required', 'status': 400}), 400
             
             timesheet_id = data['timesheet_id']
+            feedback = data['feedback']
             user_id = self.token.get('user_id')
             company_id = self.token.get('company_id')
 
@@ -1395,7 +1396,7 @@ class ApproverController:
                 body_html = f'''
                     <h1>Timesheet Rejected</h1>
                     <p>Dear {user.firstname},</p>
-                    <p>Your timesheet "{timesheet.name}" has been rejected.</p>
+                    <p>Your timesheet "{timesheet.name}" has been rejected, because of this "{feedback}"</p>
                     <p>Please review the reason for rejection and make necessary adjustments.</p>'''
 
                 ses.send_email(approver.email, user.email, subject, body_html)
@@ -1428,7 +1429,7 @@ class ApproverController:
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
             
-            if timesheet.approval == Approval.DRAFT:
+            if timesheet.approval == Approval.DRAFT or timesheet.approval == Approval.REJECTED:
                 timesheet.approval = Approval.PENDING
                 self.db_helper.update_record()
 
