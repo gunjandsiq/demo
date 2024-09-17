@@ -1001,9 +1001,11 @@ class TimesheetController:
             if not self.token:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
+            company_id = self.token.get('company_id')
+            email = self.token.get('email')
             user_id = self.token.get('user_id')
             
-            user = User.query.filter_by(id = user_id, is_archived = False).first()
+            user = User.query.filter_by(id = user_id, email=email, company_id=company_id, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
@@ -1012,11 +1014,11 @@ class TimesheetController:
             dimdate = DimDate.query.filter(DimDate.date_actual == date).first()
             name = f'Week {dimdate.week_of_year}, {dimdate.year_actual} Timesheet'
 
-            existing_timesheet = Timesheet.query.filter_by(name=name, user_id=user_id, is_archived = False).first()
+            existing_timesheet = Timesheet.query.filter_by(name=name, user_id=user.id, is_archived = False).first()
             if existing_timesheet:
                 return jsonify({'message': 'Timesheet already exists', 'status': 409}), 409
             
-            timesheet = Timesheet(name=name, start_date=dimdate.first_day_of_week, end_date=dimdate.last_day_of_week, user_id=user_id)
+            timesheet = Timesheet(name=name, start_date=dimdate.first_day_of_week, end_date=dimdate.last_day_of_week, user_id=user.id)
             self.db_helper.add_record(timesheet)
             return jsonify({'message': 'Timesheet added successfully', 'status': 201})
         except Exception as e:
@@ -1027,9 +1029,11 @@ class TimesheetController:
             if not self.token:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
+            company_id = self.token.get('company_id')
+            email = self.token.get('email')
             user_id = self.token.get('user_id')
             
-            user = User.query.filter_by(id = user_id, is_archived = False).first()
+            user = User.query.filter_by(id = user_id, email=email, company_id=company_id, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
@@ -1061,8 +1065,9 @@ class TimesheetController:
             
             email = self.token.get('email')
             company_id = self.token.get('company_id')
+            user_id = self.token.get('user_id')
         
-            user = User.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
+            user = User.query.filter_by(id=user_id, email=email, company_id=company_id, is_archived = False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
@@ -1472,7 +1477,7 @@ class ApproverController:
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
         
-    def accept_recall_request(self):
+    def                   accept_recall_request(self):
         try:
             ses = SesHelper()
             data = request.get_json()
@@ -1491,7 +1496,7 @@ class ApproverController:
             approver = User.query.filter_by(id=user.approver_id).first()
             if not approver:
                 return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
-            
+                                                                                                                                                              
             timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
