@@ -139,6 +139,7 @@ class Controller:
         
     def reset_password_with_token(self, token):
         try:
+            ses = SesHelper()
             code = CodeHelper()
             email = code.confirm_reset_token(token)
             if not email:
@@ -157,6 +158,10 @@ class Controller:
             hashed_password = self.password_helper.hash_password(new_password)
             user.password = hashed_password
             self.db_helper.update_record()
+
+            subject = "Password reset successfully"
+            body_html = f"Your password has been successfully reset."
+            ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
             return jsonify({'message': 'Password reset successfully', 'status': 200}), 200
         except Exception as e:
@@ -327,7 +332,7 @@ class UserController:
             
             user = User(firstname=firstname, lastname=lastname, role=role, email=email, phone=phone, gender=gender, password=hashed_password, company_id=company_id, supervisor_id=supervisor_id, approver_id=approver_id)
             self.db_helper.add_record(user) 
-            login_url = url_for('routes.login', _external=True)
+            login_url = "http://localhost:5173/login"
 
             subject = "Timechronos Account Credentials"
             body_html = f"""
