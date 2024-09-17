@@ -1,6 +1,6 @@
 from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity, jwt_required
 from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval, BlacklistToken
-from flask import jsonify, request, url_for
+from flask import jsonify, request
 from sqlalchemy import func
 
 class Controller:
@@ -49,7 +49,7 @@ class Controller:
             user = User(firstname=firstname, lastname=lastname, role=role, email=email, phone=phone, gender=gender, password=hashed_password, company_id=company.id)
             self.db_helper.add_record(user)
             
-            reset_url = url_for('routes.login', _external=True)
+            reset_url = "http://localhost:5173/login"
             subject = "Welcome to TimeChronos - Simplify your Time Management"
             body_html = f"""
             <h1>Welcome to TimeChronos!</h1>
@@ -127,7 +127,7 @@ class Controller:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
 
             token = code.generate_reset_token(email)
-            reset_url = url_for('routes.reset_password', token=token, _external=True)
+            reset_url = f"http://localhost:5173/reset-password/{token}"
 
             subject = "Password Reset Request"
             body_html = f"To reset your password, click the following link: <a href={reset_url}>{reset_url}</a>"
