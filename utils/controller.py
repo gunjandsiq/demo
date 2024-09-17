@@ -1093,10 +1093,11 @@ class TimesheetController:
         
     def timesheet_list(self):
         try:
+            user_id = self.token.get('user_id')
             email = self.token.get('email')
             company_id = self.token.get('company_id')
            
-            user = User.query.filter_by(email=email, company_id=company_id).first()
+            user = User.query.filter_by(id=user_id, email=email, company_id=company_id, is_archived=False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
@@ -1164,7 +1165,7 @@ class TaskHourController:
                 task_id = entry['task_id']
                 timesheet_id = entry['timesheet_id']
 
-                timesheet = Timesheet.query.filter_by(id = timesheet_id).first()
+                timesheet = Timesheet.query.filter_by(id = timesheet_id, is_archived=False).first()
                 if not timesheet or timesheet.approval not in [Approval.DRAFT, Approval.REJECTED]:
                     return jsonify({'message': 'Cannot add taskhours for a timesheet that is not in draft or rejected state', 'status': 400}), 400
 
@@ -1192,7 +1193,7 @@ class TaskHourController:
             if not taskhours:
                 return jsonify({'message': 'TaskHours not found', 'status': 404}), 404
             
-            timesheet = Timesheet.query.filter_by(id=taskhours.timesheet_id).first()
+            timesheet = Timesheet.query.filter_by(id=taskhours.timesheet_id, is_archived=False).first()
             if not timesheet or timesheet.approval not in [Approval.DRAFT, Approval.REJECTED]:
                 return jsonify({'message': 'Cannot update taskhours for a timesheet that is not in draft state', 'status': 400}), 400
             
@@ -1218,7 +1219,7 @@ class TaskHourController:
             if not taskhours:
                 return jsonify({'message': 'TaskHours not found', 'status': 404}), 404
             
-            timesheet = Timesheet.query.filter_by(id=taskhours.timesheet_id).first()
+            timesheet = Timesheet.query.filter_by(id=taskhours.timesheet_id, is_archived=False).first()
             if not timesheet or timesheet.approval!= Approval.DRAFT:
                 return jsonify({'message': 'Cannot delete taskhours for a timesheet that is not in draft state', 'status': 400}), 400
             
@@ -1241,7 +1242,9 @@ class TaskHourController:
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
 
-            user = User.query.filter(User.id == timesheet.user_id).first()   
+            user = User.query.filter_by(id=timesheet.user_id, is_archived=False).first()
+            if not user:
+                return jsonify({'message': 'User not found', 'status': 404}), 404
                     
             sort_order = request.args.get('order', 'desc').lower()
 
@@ -1259,9 +1262,9 @@ class TaskHourController:
             
             taskhour_list = []
             for taskhour in taskhours:
-                task = Task.query.filter(Task.id == taskhour.task_id).first()
-                project = Project.query.filter(Project.id == task.project_id).first()
-                client = Client.query.filter(Client.id == project.client_id).first()
+                task = Task.query.filter_by(id=taskhour.task_id, is_archived=False).first()
+                project = Project.query.filter_by(id=task.project_id, is_archived=False).first()
+                client = Client.query.filter_by(id=project.client_id, is_archived=False).first()
 
                 taskhour_list.append({
                     'id': str(taskhour.id),                               
@@ -1318,15 +1321,15 @@ class ApproverController:
             user_id = self.token.get('user_id')
             company_id = self.token.get('company_id')
 
-            user = User.query.filter_by(id=user_id, company_id=company_id).first()
+            user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
-            approver = User.query.filter_by(id=user.approver_id).first()
+            approver = User.query.filter_by(id=user.approver_id, is_archived=False).first()
             if not approver:
                 return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
             
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived=False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
             
@@ -1363,15 +1366,15 @@ class ApproverController:
             user_id = self.token.get('user_id')
             company_id = self.token.get('company_id')
 
-            user = User.query.filter_by(id=user_id, company_id=company_id).first()
+            user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
 
-            approver = User.query.filter_by(id=user.approver_id).first()
+            approver = User.query.filter_by(id=user.approver_id, is_archived=False).first()
             if not approver:
                 return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
             
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived=False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
             
@@ -1410,15 +1413,15 @@ class ApproverController:
             user_id = self.token.get('user_id')
             company_id = self.token.get('company_id')
 
-            user = User.query.filter_by(id=user_id, company_id=company_id).first()
+            user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
 
-            approver = User.query.filter_by(id=user.approver_id).first()
+            approver = User.query.filter_by(id=user.approver_id, is_archived=False).first()
             if not approver:
                 return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
 
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived=False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
             
@@ -1455,7 +1458,7 @@ class ApproverController:
             user_id = self.token.get('user_id')
             company_id = self.token.get('company_id')
 
-            user = User.query.filter_by(id=user_id, company_id=company_id).first()
+            user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
@@ -1470,7 +1473,7 @@ class ApproverController:
                 <p>A recall timesheet request has been made by {user.firstname} {user.lastname} for the timesheet.</p>
                 <p>Please review and approve or reject the recall request.</p>'''
 
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived=False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
             
@@ -1499,7 +1502,7 @@ class ApproverController:
             user_id = self.token.get('user_id')
             company_id = self.token.get('company_id')
 
-            user = User.query.filter_by(id=user_id, company_id=company_id).first()
+            user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
 
@@ -1507,7 +1510,7 @@ class ApproverController:
             if not approver:
                 return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
                                                                                                                                                               
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived=False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
             
@@ -1531,7 +1534,7 @@ class ApproverController:
         try:    
             user_id = self.token.get('user_id')
             company_id = self.token.get('company_id')
-            users = User.query.filter_by(approver_id=user_id, company_id=company_id).all()
+            users = User.query.filter_by(approver_id=user_id, company_id=company_id, is_archived=False).all()
             if not users:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
