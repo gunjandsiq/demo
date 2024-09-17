@@ -3,6 +3,7 @@ from utils.models import db, BlacklistToken
 import bcrypt, boto3, os
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, create_refresh_token, jwt_required, get_jwt
 from itsdangerous import URLSafeTimedSerializer
+from celery_config import celery
 
 jwt = JWTManager()
 auth = Blueprint('auth', __name__)
@@ -125,13 +126,13 @@ class AuthorizationHelper:
         
 class SesHelper:
 
-    def __init__(self):
-        self.client_ses = boto3.client('ses', aws_access_key_id=aws_access_key_id,
-                                  aws_secret_access_key=aws_secret_access_key_id, region_name='us-east-1')
-
-    def send_email(self, source, destination, subject, body_html):
+    @celery.task(bind=True)
+    def send_email(self, source, destination, subject, body_html, *args, **kwargs):
         try:
-            response = self.client_ses.send_email(
+            client_ses = boto3.client('ses', aws_access_key_id=aws_access_key_id,
+                                  aws_secret_access_key=aws_secret_access_key_id, region_name='us-east-1')
+            
+            response = client_ses.send_email(
                 Source=source,  # sender's email address
                 Destination={'ToAddresses': [destination]},
                 Message={
@@ -142,7 +143,6 @@ class SesHelper:
                 }
             )
             print("Email send successfully")
-            return "Email send successfully"
         except Exception as e:
             print(f"An error occurred: {e}")
             return str(e)

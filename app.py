@@ -2,6 +2,7 @@ from flask import Flask
 from utils.models import db, models
 from utils.routes import api
 from utils.helper import auth, jwt
+from celery_config import celery
 from flask_cors import CORS
 from datetime import timedelta
 
@@ -14,6 +15,15 @@ CORS(app, resources={
         }
     }
 )
+
+celery.conf.update(
+    task_serializer='json',
+    accept_content=['json'],
+    result_serializer='json',
+    timezone='Asia/Kolkata',
+    enable_utc=True,
+    broker_connection_retry_on_startup=True,
+	)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:first@localhost:5432/postgres"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -30,5 +40,5 @@ app.register_blueprint(models)
 app.register_blueprint(api)
 app.register_blueprint(auth)
 
-if __name__=='__main__':
-    app.run(debug=True)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', debug = True)

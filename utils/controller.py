@@ -56,7 +56,7 @@ class Controller:
             <p>Thank you for signing up {user.firstname} for TimeChronos. We're excited to have you on board.</p>
             <p>Please click on the link to login: <a href={reset_url}>{reset_url}</a></p>"""
 
-            ses.send_email(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
+            ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
             if user.role == 'Admin':
                 user.supervisor_id = user.id
@@ -131,7 +131,7 @@ class Controller:
 
             subject = "Password Reset Request"
             body_html = f"To reset your password, click the following link: <a href={reset_url}>{reset_url}</a>"
-            ses.send_email(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
+            ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
             return jsonify({'message': 'Password reset link sent to your email', 'status': 200}), 200
         except Exception as e:
@@ -200,7 +200,7 @@ class Controller:
             <p>Best Regards,</p>
             <p>The TimeChronos Team</p>"""
 
-            ses.send_email(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
+            ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
             return jsonify({'message': 'Password changed successfully', 'status': 200})
         except Exception as e:
@@ -344,7 +344,7 @@ class UserController:
             <p>Best Regards,</p>
             <p>The TimeChronos Team</p>"""
             
-            ses.send_email(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
+            ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
             return jsonify({'message': 'User added successfully', 'status': 201})
         except Exception as e:
@@ -1350,7 +1350,7 @@ class ApproverController:
                     <p>Your timesheet "{timesheet.name}" has been approved.</p>
                     <p>Please review it at your convenience.</p>'''
 
-                ses.send_email(approver.email, user.email, subject, body_html)
+                ses.send_email.delay(approver.email, user.email, subject, body_html)
                 return jsonify({'message': 'Timesheet approved successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
@@ -1399,7 +1399,7 @@ class ApproverController:
                     <p>Your timesheet "{timesheet.name}" has been rejected, because of this "{feedback}"</p>
                     <p>Please review the reason for rejection and make necessary adjustments.</p>'''
 
-                ses.send_email(approver.email, user.email, subject, body_html)
+                ses.send_email.delay(approver.email, user.email, subject, body_html)
                 return jsonify({'message': 'Timesheet rejected successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
@@ -1440,7 +1440,7 @@ class ApproverController:
                     <p>A new timesheet has been requested by {user.firstname} {user.lastname}.</p>
                     <p>Please review and take the necessary action.</p>'''
             
-                ses.send_email(source=user.email, destination=approver.email, subject=subject, body_html=body_html)
+                ses.send_email.delay(source=user.email, destination=approver.email, subject=subject, body_html=body_html)
                 return jsonify({'message': 'Approval request sent successfully', 'status': 201})
             
             else:
@@ -1485,7 +1485,7 @@ class ApproverController:
                 timesheet.approval = Approval.RECALLED
                 self.db_helper.update_record()
 
-                ses.send_email(source=user.email, destination=approver.email, subject=subject, body_html=body_html)
+                ses.send_email.delay(source=user.email, destination=approver.email, subject=subject, body_html=body_html)
             else:
                 return jsonify({'message': 'Timesheet cannot be accepted as it is not in recalled status', 'status': 400}), 400
             
@@ -1530,7 +1530,7 @@ class ApproverController:
                     <p>Your recall timesheet for the "{timesheet.name}" has been accepted.</p>
                     <p>Please review and make necessary adjustments.</p>'''
                 
-                ses.send_email(source=approver.email, destination=user.email, subject=subject, body_html=body_html)
+                ses.send_email.delay(source=approver.email, destination=user.email, subject=subject, body_html=body_html)
             else:
                 return jsonify({'message': 'Timesheet cannot be accepted as it is not in recalled status', 'status': 400}), 400
             
