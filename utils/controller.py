@@ -30,8 +30,8 @@ class Controller:
             hashed_password = self.password_helper.hash_password(password)
             
             existing_company = Company.query.filter_by(name=company_name, is_archived = False).first()
-            if existing_company and existing_company.is_archived:
-                return jsonify({'message': 'Company with this name already exists and is archived', 'status': 409}), 409
+            if existing_company:
+                return jsonify({'message': 'Company with this name already exists', 'status': 409}), 409
             
             if existing_company:
                 existing_user = User.query.filter_by(email=email, company_id=existing_company.id, is_archived = False).first()
@@ -1556,7 +1556,7 @@ class ApproverController:
             company_id = self.token.get('company_id')
             users = User.query.filter_by(approver_id=user_id, company_id=company_id, is_archived=False).all()
             if not users:
-                return jsonify({'message': 'User not found', 'status': 404}), 404
+                return jsonify({'message': 'User is not approver', 'status': 404}), 404
             
             timesheet_list = []
             for approver in users:
