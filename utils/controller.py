@@ -30,6 +30,9 @@ class Controller:
             hashed_password = self.password_helper.hash_password(password)
             
             existing_company = Company.query.filter_by(name=company_name, is_archived = False).first()
+            if existing_company and existing_company.is_archived:
+                return jsonify({'message': 'Company with this name already exists and is archived', 'status': 409}), 409
+            
             if existing_company:
                 existing_user = User.query.filter_by(email=email, company_id=existing_company.id, is_archived = False).first()
                 if existing_user:
@@ -40,11 +43,8 @@ class Controller:
                 if len(phone) != 10 or not phone.isdigit():
                     return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
 
-            if existing_company:
-                company = existing_company
-            else:
-                company = Company(name=company_name)
-                self.db_helper.add_record(company)
+            company = Company(name=company_name)
+            self.db_helper.add_record(company)
 
             user = User(firstname=firstname, lastname=lastname, role=role, email=email, phone=phone, gender=gender, password=hashed_password, company_id=company.id)
             self.db_helper.add_record(user)
