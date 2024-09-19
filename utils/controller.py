@@ -75,7 +75,7 @@ class Controller:
             email = data['email']
             password = data['password']
 
-            user = User.query.filter_by(email=email, is_archived = False).first()
+            user = User.query.filter_by(email=email, is_archived = False, is_active = True).first()
             if not user:
                 return jsonify({'message': 'Incorrect email or password', 'status': 401}), 401
 
@@ -538,7 +538,7 @@ class ClientController:
             self.db_helper.add_record(client)
             self.db_helper.log_insert(client, self.token.get('user_id'))
 
-            return jsonify({'message': 'Client added successfully', 'status': 201})
+            return jsonify({'message': 'Client added successfully', 'id': client.id, 'name':client.name, 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
