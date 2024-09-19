@@ -554,10 +554,11 @@ class ClientController:
                 return jsonify({'message': 'Invalid input: Client ID is required', 'status': 400}), 400
 
             client_id = data['id']
-
             client = Client.query.filter_by(id=client_id, company_id=company_id, is_archived = False).first()
             if not client:
                 return jsonify({'message': 'Client not found or does not belong to this company', 'status': 404}), 404
+            
+            old_client = client
 
             if 'email' in data:
                 existing_client = Client.query.filter_by(email=data['email'], company_id=company_id, is_archived = False).first()
@@ -574,6 +575,7 @@ class ClientController:
                 if key != 'id' and value:
                     setattr(client, key, value)
             self.db_helper.update_record()
+            self.db_helper.log_update(old_client, client, self.token.get('user_id'))
 
             return jsonify({'message': 'Client updated successfully', 'status': 200})
         except Exception as e:
@@ -729,7 +731,7 @@ class ProjectController:
 
                 existing_project = Project.query.filter_by(name=new_name, is_archived=False).first()
                 if existing_project and existing_project.id != project_id:
-                    return jsonify({'message': 'A project with the same name already exists.', 'status': 400}), 400
+                    return jsonify({'message': 'A project with the same name already exists.', 'status': 409}), 409
                 
             if 'is_active' in data:
                 project.is_active = data['is_active']
@@ -866,8 +868,22 @@ class TaskController:
         try:
             if not self.token:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
-            
             data = request.get_json()
+            
+            
+            if 'id' in data:
+                task= Task.query.filter_by(id=data['id']).first()
+                if not task:
+                    return jsonify({'message': 'Task not found', 'status': 404}), 404
+                
+                else:
+                    for key, value in data.items():
+                        if key != 'id' and value:
+                            setattr(task, key, value)
+
+                    self.db_helper.update_record()
+                    return jsonify({'message': 'Task updated successfully', 'status': 200}), 200
+            
             task = Task(is_active=True)
             for key, value in data.items():
                 if hasattr(Task, key): 
@@ -895,7 +911,7 @@ class TaskController:
 
                 existing_task = Task.query.filter_by(name=new_name, is_archived=False).first()
                 if existing_task and existing_task.id != task_id:
-                    return jsonify({'message': 'A task with the same name already exists.', 'status': 400}), 
+                    return jsonify({'message': 'A task with the same name already exists.', 'status': 409}), 409
         
             if 'is_active' in data:
                 task.is_active = data['is_active']
