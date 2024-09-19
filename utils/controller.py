@@ -703,6 +703,19 @@ class ProjectController:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
             data = request.get_json()
+
+            if 'id' in data:
+                project= Project.query.filter_by(id=data['id']).first()
+                if not project:
+                    return jsonify({'message': 'Project not found', 'status': 404}), 404
+                
+                else:
+                    for key, value in data.items():
+                        if key != 'id' and value:
+                            setattr(project, key, value)
+
+                    self.db_helper.update_record()
+                    return jsonify({'message': 'Project updated successfully', 'status': 200}), 200
             project = Project(is_active=True)
             for key, value in data.items():
                 if hasattr(Project, key): 
@@ -869,7 +882,6 @@ class TaskController:
             if not self.token:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             data = request.get_json()
-            
             
             if 'id' in data:
                 task= Task.query.filter_by(id=data['id']).first()
