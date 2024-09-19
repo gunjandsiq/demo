@@ -1,9 +1,10 @@
 from flask import jsonify, Blueprint
-from utils.models import db, BlacklistToken
-import bcrypt, boto3, os
+from utils.models import db, HistoryLogger
+import bcrypt, boto3, os, json
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, create_refresh_token, jwt_required, get_jwt
 from itsdangerous import URLSafeTimedSerializer
 from celery_config import celery
+from sqlalchemy.inspection import inspect
 
 jwt = JWTManager()
 auth = Blueprint('auth', __name__)
@@ -42,6 +43,48 @@ class DbHelper:
         finally:
             db.session.close()
 
+    def clean_record(self, record):
+        return {
+            column.key: getattr(record, column.key)
+            for column in inspect(record).mapper.column_attrs
+            if isinstance(getattr(record, column.key), (str, int, float, bool, type(None), dict, list))
+        }
+
+    def log_history(self, table, record, operation, old_record=None, user_id=None):
+        old_data = None
+        new_data = None
+
+        if operation == 'update':
+            old_data = self.clean_record(old_record) 
+
+        if operation in ['insert', 'update']:
+            new_data = self.clean_record(record)
+            if operation == 'insert':
+                db.session.flush()
+
+        if operation == 'delete':
+            old_data = self.clean_record(record)
+
+        # Create the history entry
+        history_entry = HistoryLogger(
+            table_name=table.__tablename__,
+            record_id=str(record.id),
+            operation=operation,
+            old_data=json.dumps(old_data) if old_data else None,
+            new_data=json.dumps(new_data) if new_data else None,
+            user_id=user_id
+        )
+
+        self.add_record(history_entry)
+
+    def log_insert(self, record, user_id=None):
+        self.log_history(record.__class__, record, 'insert', user_id)
+
+    def log_update(self,old_record, record, user_id=None):
+        self.log_history(record.__class__, record, 'update', old_record=old_record, user_id=user_id)
+
+    def log_delete(self, record, user_id=None):
+        self.log_history(record.__class__, record, 'delete', user_id)
 class PasswordHelper:
     def hash_password(self, password):
         try:

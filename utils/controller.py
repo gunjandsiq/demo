@@ -40,8 +40,8 @@ class Controller:
             
             if 'phone' in data:
                 phone = data['phone']
-                if len(phone) != 10 or not phone.isdigit():
-                    return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
+                if not phone.isdigit():
+                    return jsonify({'message': 'Invalid input: Please write correct no.', 'status': 400}), 400
 
             company = Company(name=company_name)
             self.db_helper.add_record(company)
@@ -323,8 +323,8 @@ class UserController:
 
             if 'phone' in data:
                 phone = data['phone']
-                if len(phone) != 10 or not phone.isdigit():
-                    return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
+                if not phone.isdigit():
+                    return jsonify({'message': 'Invalid input: Please write correct no.', 'status': 400}), 400
 
             existing_user = User.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
             if existing_user:
@@ -336,7 +336,7 @@ class UserController:
 
             subject = "Timechronos Account Credentials"
             body_html = f"""
-            <p>Dear{user.firstname},</p>
+            <p>Dear {user.firstname},</p>
             <p> I hope this  message finds you well.</p>
             <p> I am pleased to inform you that an account has been successfully created for you on Timechronos by an administrator. To access your account, please use the following credentials:</p>
                     <p> Username: {user.email}</p> 
@@ -379,8 +379,11 @@ class UserController:
             
             if 'phone' in data:
                 phone = data['phone']
-                if len(phone) != 10 or not phone.isdigit():
-                    return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
+                if not phone.isdigit():
+                    return jsonify({'message': 'Invalid input: Please write correct no.', 'status': 400}), 400
+                
+            if 'is_active' in data:
+                user.is_active = data['is_active']
             
             for key, value in data.items():
                 if key != 'id' and value: 
@@ -524,8 +527,8 @@ class ClientController:
             email = data['email']
             phone = data.get('phone')
 
-            if phone and (len(phone) != 10 or not phone.isdigit()):
-                return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
+            if not phone.isdigit():
+                    return jsonify({'message': 'Invalid input: Please write correct no.', 'status': 400}), 400
 
             existing_client = Client.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
             if existing_client:
@@ -533,6 +536,7 @@ class ClientController:
             
             client = Client(name=name, email=email, phone=phone, company_id=company_id)
             self.db_helper.add_record(client)
+            self.db_helper.log_insert(client, self.token.get('user_id'))
 
             return jsonify({'message': 'Client added successfully', 'status': 201})
         except Exception as e:
@@ -554,15 +558,18 @@ class ClientController:
             client = Client.query.filter_by(id=client_id, company_id=company_id, is_archived = False).first()
             if not client:
                 return jsonify({'message': 'Client not found or does not belong to this company', 'status': 404}), 404
-            
+
             if 'email' in data:
                 existing_client = Client.query.filter_by(email=data['email'], company_id=company_id, is_archived = False).first()
                 if existing_client and existing_client.id != client_id:
                     return jsonify({'message': 'Email is already in use by another client', 'status': 409}), 409
             
-            if 'phone' in data and (len(data['phone'])!= 10 or not data['phone'].isdigit()):
+            if 'phone' in data and not data['phone'].isdigit():
                 return jsonify({'message': 'Invalid input: Phone number must be exactly 10 digits', 'status': 400}), 400
-        
+            
+            if 'is_active' in data:
+                client.is_active = data['is_active']
+            
             for key, value in data.items():
                 if key != 'id' and value:
                     setattr(client, key, value)
@@ -592,6 +599,7 @@ class ClientController:
             client.is_archived = True
             client.is_active = False
             self.db_helper.update_record()
+            self.db_helper.log_delete(client, self.token.get('user_id'))
             return jsonify({'message': 'Client deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -681,6 +689,7 @@ class ProjectController:
                     setattr(project, key, value)
 
             self.db_helper.add_record(project)
+            self.db_helper.log_insert(project)
 
             return jsonify({'message': 'Project added successfully', 'status': 201}), 201
         except Exception as e:
@@ -721,6 +730,9 @@ class ProjectController:
                 existing_project = Project.query.filter_by(name=new_name, is_archived=False).first()
                 if existing_project and existing_project.id != project_id:
                     return jsonify({'message': 'A project with the same name already exists.', 'status': 400}), 400
+                
+            if 'is_active' in data:
+                project.is_active = data['is_active']
             
             for key, value in data.items():
                 if key != 'id' and value:
@@ -883,7 +895,10 @@ class TaskController:
 
                 existing_task = Task.query.filter_by(name=new_name, is_archived=False).first()
                 if existing_task and existing_task.id != task_id:
-                    return jsonify({'message': 'A task with the same name already exists.', 'status': 400}), 400
+                    return jsonify({'message': 'A task with the same name already exists.', 'status': 400}), 
+        
+            if 'is_active' in data:
+                task.is_active = data['is_active']
             
             for key, value in data.items():
                 if key != 'id' and value:
@@ -1025,6 +1040,7 @@ class TimesheetController:
             
             timesheet = Timesheet(name=name, start_date=dimdate.first_day_of_week, end_date=dimdate.last_day_of_week, user_id=user.id)
             self.db_helper.add_record(timesheet)
+            self.db_helper.log_insert(timesheet)
             return jsonify({'message': 'Timesheet added successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500

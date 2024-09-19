@@ -142,15 +142,15 @@ class TaskHours(db.Model, TimeStamp):
     task_id = db.Column(UUID(as_uuid=True), db.ForeignKey('task.id', ondelete="CASCADE"), nullable=False)
     timesheet_id = db.Column(UUID(as_uuid=True), db.ForeignKey('timesheet.id', ondelete="CASCADE"), nullable=False)
     
-# class HistoryLogger(db.Model, TimeStamp):
-#     __tablename__ = 'history_logger'
-#     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
-#     table_name = db.Column(db.String(100), nullable=False)
-#     record_id = db.Column(UUID(as_uuid=True), nullable=False)
-#     operation = db.Column(db.String(50), nullable=False)
-#     old_data = db.Column(db.JSON) 
-#     new_data = db.Column(db.JSON) 
-#     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id'), nullable=True) 
+class HistoryLogger(db.Model, TimeStamp):
+    __tablename__ = 'history_logger'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
+    table_name = db.Column(db.String(100), nullable=False)
+    record_id = db.Column(UUID(as_uuid=True), nullable=False)
+    operation = db.Column(db.String(50), nullable=False)
+    old_data = db.Column(db.JSON) 
+    new_data = db.Column(db.JSON) 
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id'), nullable=True) 
 
 class BlacklistToken(db.Model):
     __tablename__ = 'blacklist_tokens'
