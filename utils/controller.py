@@ -6,12 +6,12 @@ from sqlalchemy import func
 class Controller:
 
     def __init__(self):
-        self.db_helper = DbHelper()
         self.password_helper = PasswordHelper()
         self.authentication_helper = AuthenticationHelper()
 
     def register(self):
         try:
+            db_helper = DbHelper()
             ses = SesHelper()
             data = request.get_json()
             required_fields = ['company_name', 'firstname', 'email', 'password', 'gender', 'phone']
@@ -44,10 +44,10 @@ class Controller:
                     return jsonify({'message': 'Invalid input: Please write correct no.', 'status': 400}), 400
 
             company = Company(name=company_name)
-            self.db_helper.add_record(company)
+            db_helper.add_record(company)
 
             user = User(firstname=firstname, lastname=lastname, role=role, email=email, phone=phone, gender=gender, password=hashed_password, company_id=company.id)
-            self.db_helper.add_record(user)
+            db_helper.add_record(user)
             
             reset_url = "http://localhost:5173/login"
             subject = "Welcome to TimeChronos - Simplify your Time Management"
@@ -139,6 +139,7 @@ class Controller:
         
     def reset_password_with_token(self, token):
         try:
+            db_helper = DbHelper()
             ses = SesHelper()
             code = CodeHelper()
             email = code.confirm_reset_token(token)
@@ -157,7 +158,7 @@ class Controller:
 
             hashed_password = self.password_helper.hash_password(new_password)
             user.password = hashed_password
-            self.db_helper.update_record()
+            db_helper.update_record(user)
 
             subject = "Password reset successfully"
             body_html = f"Your password has been successfully reset."
@@ -169,6 +170,7 @@ class Controller:
 
     def change_password(self):
         try:
+            db_helper = DbHelper()
             ses = SesHelper()
             auth = AuthorizationHelper()
             token = auth.get_jwt_token()
@@ -194,7 +196,7 @@ class Controller:
             
             hashed_password = self.password_helper.hash_password(new_password)
             user.password = hashed_password
-            self.db_helper.update_record()
+            db_helper.update_record(user)
 
             subject = "Password change confirmation"
             body_html = f"""
@@ -213,6 +215,7 @@ class Controller:
         
     def logout(self):
         try:
+            db_helper = DbHelper()
             auth = AuthorizationHelper()
             token = auth.get_jwt_token()
             if not token:
@@ -230,7 +233,7 @@ class Controller:
                 return jsonify({'message': 'Failed to log out. Token invalidation failed', 'status': 500}), 500
             
             query = BlacklistToken(jti=token_jti)
-            self.db_helper.add_record(query)
+            db_helper.add_record(query)
 
             return jsonify({'message': 'User logged out successfully', 'status': 200}), 200
                     
@@ -265,7 +268,7 @@ class CompanyController:
                 
                 company.name = new_name
 
-            self.db_helper.update_record()
+            self.db_helper.update_record(company)
             return jsonify({'message': 'Company updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -283,7 +286,7 @@ class CompanyController:
 
             company.is_archived = True
             company.is_active = False
-            self.db_helper.update_record()
+            self.db_helper.update_record(company)
             return jsonify({'message': 'Company deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -389,7 +392,7 @@ class UserController:
                 if key != 'id' and value: 
                     setattr(user, key, value)
 
-            self.db_helper.update_record()
+            self.db_helper.update_record(user)
 
             return jsonify({'message': 'User updated successfully', 'status': 200}), 200
         except Exception as e:
@@ -414,7 +417,7 @@ class UserController:
             
             user.is_archived = True
             user.is_active = False
-            self.db_helper.update_record()
+            self.db_helper.update_record(user)
             return jsonify({'message': 'User deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
@@ -574,8 +577,8 @@ class ClientController:
             for key, value in data.items():
                 if key != 'id' and value:
                     setattr(client, key, value)
-            self.db_helper.update_record()
             self.db_helper.log_update(old_client, client, self.token.get('user_id'))
+            self.db_helper.update_record(client)
 
             return jsonify({'message': 'Client updated successfully', 'status': 200})
         except Exception as e:
@@ -600,7 +603,7 @@ class ClientController:
             
             client.is_archived = True
             client.is_active = False
-            self.db_helper.update_record()
+            self.db_helper.update_record(client)
             self.db_helper.log_delete(client, self.token.get('user_id'))
             return jsonify({'message': 'Client deleted successfully', 'status': 200})
         except Exception as e:
@@ -691,7 +694,7 @@ class ProjectController:
                     setattr(project, key, value)
 
             self.db_helper.add_record(project)
-            self.db_helper.log_insert(project)
+            self.db_helper.log_insert(project, self.token.get('user_id'))
 
             return jsonify({'message': 'Project added successfully', 'status': 201}), 201
         except Exception as e:
@@ -722,6 +725,7 @@ class ProjectController:
                     setattr(project, key, value)
 
             self.db_helper.add_record(project)
+            self.db_helper.log_insert(project, self.token.get('user_id'))
 
             return jsonify({'message': 'Project added successfully', 'status': 201}), 201
         except Exception as e:
@@ -752,7 +756,8 @@ class ProjectController:
             for key, value in data.items():
                 if key != 'id' and value:
                     setattr(project, key, value)
-            self.db_helper.update_record()
+            self.db_helper.log_update(project, self.token.get('user_id')) 
+            self.db_helper.update_record(project)
             return jsonify({'message': 'Project updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -771,7 +776,8 @@ class ProjectController:
             
             project.is_archived = True
             project.is_active = False
-            self.db_helper.update_record()
+            self.db_helper.update_record(project)
+            self.db_helper.log_delete(project, self.token.get('user_id'))
             return jsonify({'message': 'Project deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -873,6 +879,7 @@ class TaskController:
                     setattr(task, key, value)
             
             self.db_helper.add_record(task)
+            self.db_helper.log_insert(task, self.token.get('user_id'))
             return jsonify({'message': 'Task added successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -902,6 +909,7 @@ class TaskController:
                     setattr(task, key, value)
 
             self.db_helper.add_record(task)
+            self.db_helper.log_insert(task, self.token.get('user_id'))
             return jsonify({'message': 'Task added successfully', 'status': 201}), 201
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -931,7 +939,8 @@ class TaskController:
             for key, value in data.items():
                 if key != 'id' and value:
                     setattr(task, key, value)
-            self.db_helper.update_record()
+            self.db_helper.update_record(task)
+            self.db_helper.log_update(task, self.token.get('user_id'))
             return jsonify({'message': 'Task updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -950,7 +959,8 @@ class TaskController:
             
             task.is_archived = True
             task.is_active = False
-            self.db_helper.update_record()
+            self.db_helper.update_record(task)
+            self.db_helper.log_delete(task, self.token.get('user_id'))
             return jsonify({'message': 'Task deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -1068,7 +1078,7 @@ class TimesheetController:
             
             timesheet = Timesheet(name=name, start_date=dimdate.first_day_of_week, end_date=dimdate.last_day_of_week, user_id=user.id)
             self.db_helper.add_record(timesheet)
-            self.db_helper.log_insert(timesheet)
+            self.db_helper.log_insert(timesheet, user_id)
             return jsonify({'message': 'Timesheet added successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -1100,7 +1110,8 @@ class TimesheetController:
                 for key, value in data.items():
                     if value:
                         setattr(timesheet, key, value)
-                self.db_helper.update_record()
+                self.db_helper.update_record(timesheet)
+                self.db_helper.log_update(timesheet, user_id)
                 return jsonify({'message': 'Timesheet updated successfully', 'status': 200})
             else:
                 return jsonify({'message': 'Cannot update a timesheet that is not in draft or rejected state', 'status': 400})
@@ -1133,7 +1144,8 @@ class TimesheetController:
             if timesheet.approval == Approval.DRAFT: 
                 timesheet.is_archived = True
                 timesheet.is_active = False
-                self.db_helper.update_record()
+                self.db_helper.update_record(timesheet)
+                self.db_helper.log_update(timesheet, user_id)
                 return jsonify({'message': 'Timesheet deleted successfully', 'status': 200})
             else:
                 return jsonify({'message': 'Cannot delete a timesheet', 'status': 400})
@@ -1215,7 +1227,10 @@ class TaskHourController:
                 timesheet_id = entry['timesheet_id']
 
                 timesheet = Timesheet.query.filter_by(id = timesheet_id, is_archived=False).first()
-                if not timesheet or timesheet.approval not in [Approval.DRAFT, Approval.REJECTED]:
+                if not timesheet:
+                    return jsonify({'message': 'Timesheet not found or does not belong to this User', 'status': 404}), 404
+                
+                if timesheet.approval not in [Approval.DRAFT, Approval.REJECTED]:
                     return jsonify({'message': 'Cannot add taskhours for a timesheet that is not in draft or rejected state', 'status': 400}), 400
 
                 existing_taskhour = TaskHours.query.filter_by(task_id=task_id, timesheet_id=timesheet_id).first()
@@ -1224,6 +1239,7 @@ class TaskHourController:
 
                 taskhour = TaskHours(values=values, task_id=task_id, timesheet_id=timesheet_id)
                 self.db_helper.add_record(taskhour)
+                self.db_helper.log_insert(taskhour, self.token.get('user_id'))
 
             return jsonify({'message': 'TaskHours added successfully', 'status': 201})
         except Exception as e:
@@ -1256,7 +1272,8 @@ class TaskHourController:
                 if hasattr(taskhours, key) and value is not None:
                     setattr(taskhours, key, value)
 
-            self.db_helper.update_record()
+            self.db_helper.update_record(taskhours)
+            self.db_helper.log_update(taskhours, self.token.get('user_id'))
             return jsonify({'message': 'TaskHours updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -1279,7 +1296,8 @@ class TaskHourController:
                 return jsonify({'message': 'Cannot delete taskhours for a timesheet that is not in draft state', 'status': 400}), 400
             
             taskhours.is_active = False
-            self.db_helper.delete_record(taskhours) 
+            self.db_helper.delete_record(taskhours)
+            self.db_helper.log_delete(taskhours, self.token.get('user_id'))
             return jsonify({'message': 'TaskHours deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -1379,24 +1397,28 @@ class ApproverController:
             user_id = self.token.get('user_id')
             company_id = self.token.get('company_id')
 
-            user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
-            if not user:
-                return jsonify({'message': 'User not found', 'status': 404}), 404
-            
-            approver = User.query.filter_by(id=user.approver_id, is_archived=False).first()
-            if not approver:
-                return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
-            
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived=False).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, is_archived=False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
             
+            user = User.query.filter_by(id=timesheet.user_id, company_id=company_id, is_archived=False).first()
+            if not user:
+                return jsonify({'message': 'User not found', 'status': 404}), 404
+            
+            approver = User.query.filter_by(id=user.approver_id, company_id=company_id, is_archived=False).first()
+            if not approver:
+                return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
+
+            if str(approver.id) != str(user_id):
+                return jsonify({'message': 'You are not authorized to approve this timesheet', 'status': 403}), 403
+                
             if timesheet.approval == Approval.APPROVED:
                 return jsonify({'message': 'Timesheet is already approved', 'status': 409}), 409
             
             else:
                 timesheet.approval = Approval.APPROVED
-                self.db_helper.update_record()
+                self.db_helper.update_record(timesheet)
+                self.db_helper.log_update(timesheet, user_id)
 
                 subject = 'Timesheet Approved'
                 body_html = f'''
@@ -1425,27 +1447,31 @@ class ApproverController:
             user_id = self.token.get('user_id')
             company_id = self.token.get('company_id')
 
-            user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
-            if not user:
-                return jsonify({'message': 'User not found', 'status': 404}), 404
-
-            approver = User.query.filter_by(id=user.approver_id, is_archived=False).first()
-            if not approver:
-                return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
-            
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived=False).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, is_archived=False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
+            
+            user = User.query.filter_by(id=timesheet.user_id, company_id=company_id, is_archived=False).first()
+            if not user:
+                return jsonify({'message': 'User not found', 'status': 404}), 404
+            
+            approver = User.query.filter_by(id=user.approver_id, company_id=company_id, is_archived=False).first()
+            if not approver:
+                return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
+
+            if str(approver.id) != str(user_id):
+                return jsonify({'message': 'You are not authorized to reject this timesheet', 'status': 403}), 403
             
             if timesheet.approval == Approval.REJECTED:
                 return jsonify({'message': 'Timesheet is already rejected', 'status': 409}), 409
             
             elif timesheet.approval == Approval.APPROVED:
-                return jsonify({'message': 'Timesheet cannot be reject if it has been approved', 'status': 409}), 409
+                return jsonify({'message': 'Timesheet cannot be reject, it has been approved', 'status': 409}), 409
             
             else:
                 timesheet.approval = Approval.REJECTED
-                self.db_helper.update_record()
+                self.db_helper.update_record(timesheet)
+                self.db_helper.log_update(timesheet, user_id)
 
                 subject = 'Timesheet Rejected'
                 body_html = f'''
@@ -1480,13 +1506,14 @@ class ApproverController:
             if not approver:
                 return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
 
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived=False).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, is_archived=False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
             
             if timesheet.approval == Approval.DRAFT or timesheet.approval == Approval.REJECTED:
                 timesheet.approval = Approval.PENDING
-                self.db_helper.update_record()
+                self.db_helper.update_record(timesheet)
+                self.db_helper.log_update(timesheet, user_id)
 
                 subject = 'Timesheet Approval Request'
                 body_html = f'''
@@ -1521,7 +1548,7 @@ class ApproverController:
             if not user:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
             
-            approver = User.query.filter_by(id=user.approver_id).first()
+            approver = User.query.filter_by(id=user.approver_id, is_archived=False).first()
             if not approver:
                 return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
             
@@ -1532,13 +1559,14 @@ class ApproverController:
                 <p>A recall timesheet request has been made by {user.firstname} {user.lastname} for the timesheet.</p>
                 <p>Please review and approve or reject the recall request.</p>'''
 
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived=False).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, is_archived=False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
             
             if timesheet.approval == Approval.APPROVED:
                 timesheet.approval = Approval.RECALLED
-                self.db_helper.update_record()
+                self.db_helper.update_record(timesheet)
+                self.db_helper.log_update(timesheet, user_id)
 
                 ses.send_email.delay(source=user.email, destination=approver.email, subject=subject, body_html=body_html)
             else:
@@ -1562,21 +1590,25 @@ class ApproverController:
             user_id = self.token.get('user_id')
             company_id = self.token.get('company_id')
 
-            user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
-            if not user:
-                return jsonify({'message': 'User not found', 'status': 404}), 404
-
-            approver = User.query.filter_by(id=user.approver_id).first()
-            if not approver:
-                return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
-                                                                                                                                                              
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user.id, is_archived=False).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, is_archived=False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
             
+            user = User.query.filter_by(id=timesheet.user_id, company_id=company_id, is_archived=False).first()
+            if not user:
+                return jsonify({'message': 'User not found', 'status': 404}), 404
+            
+            approver = User.query.filter_by(id=user.approver_id, company_id=company_id, is_archived=False).first()
+            if not approver:
+                return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
+
+            if str(approver.id) != str(user_id):
+                return jsonify({'message': 'You are not authorized to accept recall request of this timesheet', 'status': 403}), 403
+            
             if timesheet.approval == Approval.RECALLED:
                 timesheet.approval = Approval.DRAFT
-                self.db_helper.update_record()
+                self.db_helper.update_record(timesheet)
+                self.db_helper.log_update(timesheet, user_id)
             
                 subject = 'Timesheet Recall Accepted'
                 body_html = f'''

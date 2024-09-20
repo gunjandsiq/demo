@@ -1,5 +1,5 @@
 from flask import jsonify, Blueprint
-from utils.models import db, HistoryLogger
+from utils.models import db, HistoryLogger, TimeStamp
 import bcrypt, boto3, os, json
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, create_refresh_token, jwt_required, get_jwt
 from itsdangerous import URLSafeTimedSerializer
@@ -12,10 +12,17 @@ auth = Blueprint('auth', __name__)
 aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
 aws_secret_access_key_id = os.getenv('AWS_SECRET_ACCESS_KEY')
 
+
 class DbHelper:
+
+    def __init__(self):
+        self.auth = AuthorizationHelper()
+        self.token = self.auth.get_jwt_token()
+        self.user_id = self.token.get('user_id')
 
     def add_record(self, query):
         try:
+            query.created_by = self.user_id
             db.session.add(query)
             db.session.commit()
         except Exception as e:
@@ -24,8 +31,9 @@ class DbHelper:
         # finally:
         #     db.session.close()
 
-    def update_record(self):
+    def update_record(self,query):
         try:
+            query.updated_by = self.user_id
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -65,7 +73,6 @@ class DbHelper:
         if operation == 'delete':
             old_data = self.clean_record(record)
 
-        # Create the history entry
         history_entry = HistoryLogger(
             table_name=table.__tablename__,
             record_id=str(record.id),

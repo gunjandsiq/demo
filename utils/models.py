@@ -14,7 +14,7 @@ class TimeStamp(object):
     updated_date = db.Column(db.Date, default=datetime.now, onupdate=datetime.now)
     updated_time = db.Column(db.TIME, default=datetime.now, onupdate=datetime.now)
     created_by = db.Column(db.String, default='app')
-    updated_by = db.Column(db.String, default='app')
+    updated_by = db.Column(db.String, default='app', onupdate=db.String)
 
 class DimDate(db.Model, TimeStamp):
     __tablename__ = 'dim_date'
