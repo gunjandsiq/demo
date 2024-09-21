@@ -31,9 +31,8 @@ class DbHelper:
         # finally:
         #     db.session.close()
 
-    def update_record(self,query):
+    def update_record(self):
         try:
-            query.updated_by = self.user_id
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -87,7 +86,7 @@ class DbHelper:
     def log_insert(self, record, user_id=None):
         self.log_history(record.__class__, record, 'insert', user_id)
 
-    def log_update(self,old_record, record, user_id=None):
+    def log_update(self, record, old_record=None, user_id=None):
         self.log_history(record.__class__, record, 'update', old_record=old_record, user_id=user_id)
 
     def log_delete(self, record, user_id=None):

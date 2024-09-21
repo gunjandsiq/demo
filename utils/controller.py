@@ -561,8 +561,6 @@ class ClientController:
             if not client:
                 return jsonify({'message': 'Client not found or does not belong to this company', 'status': 404}), 404
             
-            old_client = client
-
             if 'email' in data:
                 existing_client = Client.query.filter_by(email=data['email'], company_id=company_id, is_archived = False).first()
                 if existing_client and existing_client.id != client_id:
@@ -577,8 +575,8 @@ class ClientController:
             for key, value in data.items():
                 if key != 'id' and value:
                     setattr(client, key, value)
-            self.db_helper.log_update(old_client, client, self.token.get('user_id'))
-            self.db_helper.update_record(client)
+            #self.db_helper.update_record()(old_client, client, self.token.get('user_id'))           
+            self.db_helper.update_record()
 
             return jsonify({'message': 'Client updated successfully', 'status': 200})
         except Exception as e:
@@ -603,7 +601,7 @@ class ClientController:
             
             client.is_archived = True
             client.is_active = False
-            self.db_helper.update_record(client)
+            self.db_helper.update_record()
             self.db_helper.log_delete(client, self.token.get('user_id'))
             return jsonify({'message': 'Client deleted successfully', 'status': 200})
         except Exception as e:
@@ -756,8 +754,8 @@ class ProjectController:
             for key, value in data.items():
                 if key != 'id' and value:
                     setattr(project, key, value)
-            self.db_helper.log_update(project, self.token.get('user_id')) 
-            self.db_helper.update_record(project)
+            #self.db_helper.update_record()(project, self.token.get('user_id')) 
+            self.db_helper.update_record()
             return jsonify({'message': 'Project updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -776,7 +774,7 @@ class ProjectController:
             
             project.is_archived = True
             project.is_active = False
-            self.db_helper.update_record(project)
+            self.db_helper.update_record()
             self.db_helper.log_delete(project, self.token.get('user_id'))
             return jsonify({'message': 'Project deleted successfully', 'status': 200})
         except Exception as e:
@@ -939,8 +937,8 @@ class TaskController:
             for key, value in data.items():
                 if key != 'id' and value:
                     setattr(task, key, value)
-            self.db_helper.update_record(task)
-            self.db_helper.log_update(task, self.token.get('user_id'))
+            self.db_helper.update_record()
+            #self.db_helper.update_record()(task, self.token.get('user_id'))
             return jsonify({'message': 'Task updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -959,7 +957,7 @@ class TaskController:
             
             task.is_archived = True
             task.is_active = False
-            self.db_helper.update_record(task)
+            self.db_helper.update_record()
             self.db_helper.log_delete(task, self.token.get('user_id'))
             return jsonify({'message': 'Task deleted successfully', 'status': 200})
         except Exception as e:
@@ -1110,8 +1108,8 @@ class TimesheetController:
                 for key, value in data.items():
                     if value:
                         setattr(timesheet, key, value)
-                self.db_helper.update_record(timesheet)
-                self.db_helper.log_update(timesheet, user_id)
+                self.db_helper.update_record()
+                #self.db_helper.update_record()(timesheet, user_id)
                 return jsonify({'message': 'Timesheet updated successfully', 'status': 200})
             else:
                 return jsonify({'message': 'Cannot update a timesheet that is not in draft or rejected state', 'status': 400})
@@ -1144,8 +1142,8 @@ class TimesheetController:
             if timesheet.approval == Approval.DRAFT: 
                 timesheet.is_archived = True
                 timesheet.is_active = False
-                self.db_helper.update_record(timesheet)
-                self.db_helper.log_update(timesheet, user_id)
+                self.db_helper.update_record()
+                #self.db_helper.update_record()(timesheet, user_id)
                 return jsonify({'message': 'Timesheet deleted successfully', 'status': 200})
             else:
                 return jsonify({'message': 'Cannot delete a timesheet', 'status': 400})
@@ -1272,8 +1270,8 @@ class TaskHourController:
                 if hasattr(taskhours, key) and value is not None:
                     setattr(taskhours, key, value)
 
-            self.db_helper.update_record(taskhours)
-            self.db_helper.log_update(taskhours, self.token.get('user_id'))
+            self.db_helper.update_record()
+            #self.db_helper.update_record()(taskhours, self.token.get('user_id'))
             return jsonify({'message': 'TaskHours updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -1417,8 +1415,8 @@ class ApproverController:
             
             else:
                 timesheet.approval = Approval.APPROVED
-                self.db_helper.update_record(timesheet)
-                self.db_helper.log_update(timesheet, user_id)
+                self.db_helper.update_record()
+                #self.db_helper.update_record()(timesheet, user_id)
 
                 subject = 'Timesheet Approved'
                 body_html = f'''
@@ -1470,8 +1468,8 @@ class ApproverController:
             
             else:
                 timesheet.approval = Approval.REJECTED
-                self.db_helper.update_record(timesheet)
-                self.db_helper.log_update(timesheet, user_id)
+                self.db_helper.update_record()
+                #self.db_helper.update_record()(timesheet, user_id)
 
                 subject = 'Timesheet Rejected'
                 body_html = f'''
@@ -1512,8 +1510,8 @@ class ApproverController:
             
             if timesheet.approval == Approval.DRAFT or timesheet.approval == Approval.REJECTED:
                 timesheet.approval = Approval.PENDING
-                self.db_helper.update_record(timesheet)
-                self.db_helper.log_update(timesheet, user_id)
+                self.db_helper.update_record()
+                #self.db_helper.update_record()(timesheet, user_id)
 
                 subject = 'Timesheet Approval Request'
                 body_html = f'''
@@ -1565,8 +1563,8 @@ class ApproverController:
             
             if timesheet.approval == Approval.APPROVED:
                 timesheet.approval = Approval.RECALLED
-                self.db_helper.update_record(timesheet)
-                self.db_helper.log_update(timesheet, user_id)
+                self.db_helper.update_record()
+                #self.db_helper.update_record()(timesheet, user_id)
 
                 ses.send_email.delay(source=user.email, destination=approver.email, subject=subject, body_html=body_html)
             else:
@@ -1603,12 +1601,12 @@ class ApproverController:
                 return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
 
             if str(approver.id) != str(user_id):
-                return jsonify({'message': 'You are not authorized to accept recall request of this timesheet', 'status': 403}), 403
+                return jsonify({'message': 'You are not authorized to accept recall request this timesheet', 'status': 403}), 403
             
             if timesheet.approval == Approval.RECALLED:
                 timesheet.approval = Approval.DRAFT
-                self.db_helper.update_record(timesheet)
-                self.db_helper.log_update(timesheet, user_id)
+                self.db_helper.update_record()
+                #self.db_helper.update_record()(timesheet, user_id)
             
                 subject = 'Timesheet Recall Accepted'
                 body_html = f'''
