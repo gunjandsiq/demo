@@ -694,7 +694,7 @@ class ProjectController:
             self.db_helper.add_record(project)
             self.db_helper.log_insert(project, self.token.get('user_id'))
 
-            return jsonify({'message': 'Project added successfully', 'status': 201}), 201
+            return jsonify({'message': 'Project added successfully', 'id':project.id, 'name':project.name, 'status': 201}), 201
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
         
@@ -725,7 +725,7 @@ class ProjectController:
             self.db_helper.add_record(project)
             self.db_helper.log_insert(project, self.token.get('user_id'))
 
-            return jsonify({'message': 'Project added successfully', 'status': 201}), 201
+            return jsonify({'message': 'Project added successfully', 'id':project.id, 'name':project.name, 'status': 201}), 201
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -1333,9 +1333,9 @@ class TaskHourController:
             
             taskhour_list = []
             for taskhour in taskhours:
-                task = Task.query.filter_by(id=taskhour.task_id, is_archived=False).first()
-                project = Project.query.filter_by(id=task.project_id, is_archived=False).first()
-                client = Client.query.filter_by(id=project.client_id, is_archived=False).first()
+                task = Task.query.filter_by(id=taskhour.task_id).first()
+                project = Project.query.filter_by(id=task.project_id).first()
+                client = Client.query.filter_by(id=project.client_id).first()
 
                 if not task or not project or not client:
                     continue 
