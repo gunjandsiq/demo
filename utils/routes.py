@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from utils.models import db, BlacklistToken
 from utils.helper import jwt
-from utils.controller import UserController, ClientController, ProjectController, TaskController, TaskHourController, Controller, TimesheetController, CompanyController, ApproverController
+from utils.controller import UserController, ClientController, ProjectController, TaskController, TaskHourController, Controller, TimesheetController, CompanyController, ApproverController, ProfileController
 
 api = Blueprint('routes', __name__)
 
@@ -381,6 +381,22 @@ def approver_list():
     try:
         approver = ApproverController()
         return approver.approver_list()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
+@api.route('/updateprofile', methods=['POST'])
+def update_profile():
+    try:
+        profile = ProfileController()
+        return profile.update_profile()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
+@api.route('/getprofile', methods=['GET'])
+def get_profile():
+    try:
+        profile = ProfileController()
+        return profile.get_profile()
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     

@@ -12,7 +12,6 @@ auth = Blueprint('auth', __name__)
 aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
 aws_secret_access_key_id = os.getenv('AWS_SECRET_ACCESS_KEY')
 
-
 class DbHelper:
 
     def __init__(self):
@@ -196,3 +195,100 @@ class SesHelper:
             print(f"An error occurred: {e}")
             return str(e)
 
+class S3_helper:
+
+    def __init__(self):
+        self.client_s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id,
+                                  aws_secret_access_key=aws_secret_access_key_id, region_name='us-east-1')
+        
+        self.bucket_name = os.getenv('AWS_BUCKET_NAME')
+        if not self.bucket_name:
+            raise ValueError("AWS_BUCKET_NAME environment variable is not set")
+        
+    # Returns a list of all buckets 
+    def bucket_list_names(self):
+        try:
+            bucket_list = []
+            response = self.client_s3.list_buckets()
+            for bucket in response['Buckets']:
+                bucket_list.append(bucket['Name'])
+            return bucket_list
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return str(e)
+        
+    # Returns all objects in a bucket   
+    def objects_list(self,bucket_name, prefix): 
+        try:
+            response = self.client_s3.list_objects(
+                Bucket = bucket_name,
+                Prefix = prefix  # optional
+            )
+            return response
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return str(e)
+        
+    def create_s3_bucket(self, bucket_name):
+        try:
+            response = self.client_s3.create_bucket(
+                Bucket = bucket_name,
+                CreateBucketConfiguration={'LocationConstraint': 'us-east-1'}
+            )
+            print(response)
+            return response
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return str(e)
+    
+    def upload_file_to_object(self,file_path,bucket_name,file_key):
+        try:
+            response = self.client_s3.upload_file(
+                Filename = file_path,                                                
+                Bucket = bucket_name,                                                 
+                Key = file_key                                                    
+            )           
+            return response
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return str(e)
+        
+    # Adds an object to a bucket    
+    def put_object_in_s3(self,file,bucket_name,file_key):
+        try:
+            response = self.client_s3.put_object(
+                Body = file,
+                Bucket = bucket_name,
+                Key = file_key 
+            )
+            return response
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return str(e)
+        
+    # Retrieves an object from s3    
+    def get_object(self,bucket_name,file_key):
+        try:
+            response = self.client_s3.get_object(
+                Bucket = bucket_name,
+                Key = file_key 
+            )
+            return response
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return str(e)
+        
+    def generate_presigned_of_img(self, bucket_name, file_key):
+        try:
+            response = self.client_s3.generate_presigned_url(
+                ClientMethod = 'get_object',
+                Params = {
+                    'Bucket': bucket_name,
+                    'Key': file_key,
+                },
+                ExpiresIn= 604800
+            )
+            return response
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return str(e)

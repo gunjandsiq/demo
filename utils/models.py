@@ -67,6 +67,8 @@ class User(db.Model, TimeStamp):
     email = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(10))
     gender = db.Column(db.String(50), nullable=False)
+    date_of_birth = db.Column(db.Date)
+    address = db.Column(db.String(255))
     password = db.Column(db.String)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('company.id', ondelete="CASCADE"), nullable=False)
     supervisor_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id', ondelete="SET NULL"))

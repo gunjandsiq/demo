@@ -1659,6 +1659,71 @@ class ApproverController:
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
+class ProfileController:
+    
+    def __init__(self):
+        self.db_helper = DbHelper()
+        self.auth = AuthorizationHelper()
+        self.token = self.auth.get_jwt_token()
 
+    def update_profile(self):
+        data = request.get_json()
+        user_id = self.token.get('user_id')
+        company_id = self.token.get('company_id')
+
+        user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
+        if not user:
+            return jsonify({'message': 'User not found', 'status': 404}), 404
+        
+        fields_to_update = ['firstname', 'lastname', 'phone', 'date_of_birth', 'address', 'gender']
+    
+        for field in fields_to_update:
+            if field in data:
+                setattr(user, field, data[field])
+        
+            self.db_helper.update_record()
+            return jsonify({'message': 'Profile updated successfully', 'status': 200})
+        
+    def get_profile(self):
+        user_id = self.token.get('user_id')
+        company_id = self.token.get('company_id')
+
+        company = Company.query.get(company_id)
+        if not company:
+            return jsonify({'message': 'Company not found', 'status': 404}), 404
+
+        user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
+        if not user:
+            return jsonify({'message': 'User not found', 'status': 404}), 404
+        
+        supervisor = User.query.filter(User.id == user.supervisor_id).first()
+        approver = User.query.filter(User.id == user.approver_id).first()
+        
+        profile_data = {
+            'id': user.id,
+            'firstname': user.firstname,
+            'lastname': user.lastname,
+            'email': user.email,
+            'phone': user.phone,
+            'role': user.role,
+            'company_name': company.name,
+            'date_of_birth': user.date_of_birth.strftime('%Y-%m-%d') if user.date_of_birth else None,
+            'address': user.address if user.address else None,
+            'gender': user.gender.value,
+            'supervisor_name': supervisor.name ,
+            'approver_name': approver.name 
+        }
+        
+        return jsonify({'message': 'Profile retrieved successfully', 'data': profile_data, 'status': 200}), 200
+    
+    def upload_profile_photo(self):
+        user_id = self.token.get('user_id')
+        company_id = self.token.get('company_id')
+
+        user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
+        if not user:
+            return jsonify({'message': 'User not found', 'status': 404}), 404
+        
+        pass
 
 
