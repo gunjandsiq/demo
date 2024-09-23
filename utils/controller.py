@@ -1,4 +1,4 @@
-from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity, jwt_required
+from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity, jwt_required, S3Helper
 from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval, BlacklistToken
 from flask import jsonify, request
 from sqlalchemy import func
@@ -1681,8 +1681,8 @@ class ProfileController:
             if field in data:
                 setattr(user, field, data[field])
         
-            self.db_helper.update_record()
-            return jsonify({'message': 'Profile updated successfully', 'status': 200})
+        self.db_helper.update_record()
+        return jsonify({'message': 'Profile updated successfully', 'status': 200})
         
     def get_profile(self):
         user_id = self.token.get('user_id')
@@ -1717,6 +1717,7 @@ class ProfileController:
         return jsonify({'message': 'Profile retrieved successfully', 'data': profile_data, 'status': 200}), 200
     
     def upload_profile_photo(self):
+        s3 = S3Helper()
         user_id = self.token.get('user_id')
         company_id = self.token.get('company_id')
 
@@ -1724,6 +1725,9 @@ class ProfileController:
         if not user:
             return jsonify({'message': 'User not found', 'status': 404}), 404
         
+        file = request.files['photo']
+        if not file:
+            return jsonify({'message': 'No file provided', 'status': 400}), 400
+        
+        files = s3.upload_file_to_object(user_id, 'timechronos', file)
         pass
-
-
