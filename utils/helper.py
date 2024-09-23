@@ -12,16 +12,14 @@ auth = Blueprint('auth', __name__)
 aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
 aws_secret_access_key_id = os.getenv('AWS_SECRET_ACCESS_KEY')
 
-class DbHelper:
-
-    def __init__(self):
-        self.auth = AuthorizationHelper()
-        self.token = self.auth.get_jwt_token()
-        self.user_id = self.token.get('user_id')
+class DbHelper:   
 
     def add_record(self, query):
         try:
-            query.created_by = self.user_id
+            auth = AuthorizationHelper()
+            token = auth.get_jwt_token()
+            user_id = token.get('user_id')
+            query.created_by = user_id
             db.session.add(query)
             db.session.commit()
         except Exception as e:

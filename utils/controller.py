@@ -61,7 +61,7 @@ class Controller:
             if user.role == 'Admin':
                 user.supervisor_id = user.id
                 user.approver_id = user.id
-                self.db_helper.update_record()
+                db_helper.update_record()
             return jsonify({'message': 'Company and user added successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -1663,8 +1663,6 @@ class ProfileController:
     
     def __init__(self):
         self.db_helper = DbHelper()
-        self.auth = AuthorizationHelper()
-        self.token = self.auth.get_jwt_token()
 
     def update_profile(self):
         data = request.get_json()
