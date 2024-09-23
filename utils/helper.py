@@ -16,10 +16,6 @@ class DbHelper:
 
     def add_record(self, query):
         try:
-            auth = AuthorizationHelper()
-            token = auth.get_jwt_token()
-            user_id = token.get('user_id')
-            query.created_by = user_id
             db.session.add(query)
             db.session.commit()
         except Exception as e:
