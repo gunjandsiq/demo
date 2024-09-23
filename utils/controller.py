@@ -1663,6 +1663,8 @@ class ProfileController:
     
     def __init__(self):
         self.db_helper = DbHelper()
+        self.auth = AuthorizationHelper()
+        self.token = self.auth.get_token()
 
     def update_profile(self):
         data = request.get_json()
