@@ -1664,7 +1664,7 @@ class ProfileController:
     def __init__(self):
         self.db_helper = DbHelper()
         self.auth = AuthorizationHelper()
-        self.token = self.auth.get_token()
+        self.token = self.auth.get_jwt_token()
 
     def update_profile(self):
         data = request.get_json()
@@ -1709,9 +1709,9 @@ class ProfileController:
             'company_name': company.name,
             'date_of_birth': user.date_of_birth.strftime('%Y-%m-%d') if user.date_of_birth else None,
             'address': user.address if user.address else None,
-            'gender': user.gender.value,
-            'supervisor_name': supervisor.name ,
-            'approver_name': approver.name 
+            'gender': user.gender,
+            'supervisor_name': f'{supervisor.firstname} {supervisor.lastname}' if supervisor.lastname else supervisor.firstname,
+            'approver_name': f'{approver.firstname} {approver.lastname}' if supervisor.lastname else supervisor.firstname
         }
         
         return jsonify({'message': 'Profile retrieved successfully', 'data': profile_data, 'status': 200}), 200
