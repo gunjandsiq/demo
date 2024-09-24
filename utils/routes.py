@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from utils.models import db, BlacklistToken
-from utils.helper import jwt
+from utils.helper import jwt, S3Helper
 from utils.controller import UserController, ClientController, ProjectController, TaskController, TaskHourController, Controller, TimesheetController, CompanyController, ApproverController, ProfileController
 
 api = Blueprint('routes', __name__)
@@ -40,7 +40,10 @@ def check_if_token_in_blacklist(jwt_header, jwt_payload):
 
 @api.route('/')
 def server():
-    return jsonify({'message': 'Server is up and running'})
+    s3 = S3Helper()
+    ab = s3.objects_list('timechronos')
+    # return jsonify({'message': 'Server is up and running'})
+    return ab
 
 @api.route('/createdb')
 def create_db():
@@ -397,6 +400,14 @@ def get_profile():
     try:
         profile = ProfileController()
         return profile.get_profile()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+    
+@api.route('/uploadprofile', methods=['POST'])
+def upload_profile():
+    try:
+        profile = ProfileController()
+        return profile.upload_profile_photo()
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     

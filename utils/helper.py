@@ -189,15 +189,15 @@ class SesHelper:
             print(f"An error occurred: {e}")
             return str(e)
 
-class S3_helper:
+class S3Helper:
 
     def __init__(self):
         self.client_s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id,
                                   aws_secret_access_key=aws_secret_access_key_id, region_name='us-east-1')
         
-        self.bucket_name = os.getenv('AWS_BUCKET_NAME')
-        if not self.bucket_name:
-            raise ValueError("AWS_BUCKET_NAME environment variable is not set")
+        # self.bucket_name = os.getenv('AWS_BUCKET_NAME')
+        # if not self.bucket_name:
+        #     raise ValueError("AWS_BUCKET_NAME environment variable is not set")
         
     # Returns a list of all buckets 
     def bucket_list_names(self):
@@ -212,9 +212,9 @@ class S3_helper:
             return str(e)
         
     # Returns all objects in a bucket   
-    def objects_list(self,bucket_name, prefix): 
+    def objects_list(self,bucket_name, prefix=''): 
         try:
-            response = self.client_s3.list_objects(
+            response = self.client_s3.list_objects_v2(
                 Bucket = bucket_name,
                 Prefix = prefix  # optional
             )
@@ -227,7 +227,7 @@ class S3_helper:
         try:
             response = self.client_s3.create_bucket(
                 Bucket = bucket_name,
-                CreateBucketConfiguration={'LocationConstraint': 'us-east-1'}
+                CreateBucketConfiguration={'LocationConstraint': 'us-east-2'}
             )
             print(response)
             return response

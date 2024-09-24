@@ -335,6 +335,10 @@ class UserController:
             
             user = User(firstname=firstname, lastname=lastname, role=role, email=email, phone=phone, gender=gender, password=hashed_password, company_id=company_id, supervisor_id=supervisor_id, approver_id=approver_id)
             self.db_helper.add_record(user) 
+
+            supervisor = User.query.filter_by(id=supervisor_id, company_id=company_id, is_archived = False).first()
+            approver = User.query.filter_by(id=approver_id, company_id=company_id, is_archived=False).first()
+
             login_url = "http://localhost:5173/login"
 
             subject = "Timechronos Account Credentials"
@@ -354,7 +358,19 @@ class UserController:
             
             ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
-            return jsonify({'message': 'User added successfully', 'status': 201})
+            return jsonify({
+                'message': 'User added successfully', 
+                'id': user.id,
+                'firstname': user.firstname,
+                'lastname': user.lastname,
+                'role': user.role,
+                'email': user.email,
+                'phone': user.phone,
+                'gender': user.gender,
+                'supervisor_name': supervisor.name,
+                'approver_name': approver.name,
+                'is_active': user.is_active,
+                'status': 201})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -541,7 +557,14 @@ class ClientController:
             self.db_helper.add_record(client)
             self.db_helper.log_insert(client, self.token.get('user_id'))
 
-            return jsonify({'message': 'Client added successfully', 'id': client.id, 'name':client.name, 'status': 201})
+            return jsonify({
+                'message': 'Client added successfully', 
+                'id': client.id, 
+                'name':client.name, 
+                'email':client.email, 
+                'phone':client.phone, 
+                'status': 201
+            })
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -682,6 +705,8 @@ class ProjectController:
             name = data['name']
             client_id = data['client_id']
 
+            client = Client.query.filter_by(id=client_id, is_archived = False).first()
+
             existing_project = Project.query.filter_by(name=name, client_id=client_id, is_archived = False).first()
             if existing_project:
                 return jsonify({'message': 'Project already exists', 'status': 409}), 409
@@ -694,7 +719,13 @@ class ProjectController:
             self.db_helper.add_record(project)
             self.db_helper.log_insert(project, self.token.get('user_id'))
 
-            return jsonify({'message': 'Project added successfully', 'id':project.id, 'name':project.name, 'status': 201}), 201
+            return jsonify({
+                'message': 'Project added successfully', 
+                'id':project.id, 
+                'name':project.name, 
+                'client_name':client.name, 
+                'status': 201
+            }), 201
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
         
@@ -867,6 +898,8 @@ class TaskController:
             name = data['name']
             project_id = data['project_id']
 
+            project = Project.query.filter_by(id=project_id, is_archived = False).first()
+
             existing_task = Task.query.filter_by(name=name, project_id=project_id, is_archived = False).first()
             if existing_task:
                 return jsonify({'message': 'Task already exists', 'status': 409}), 409
@@ -878,7 +911,14 @@ class TaskController:
             
             self.db_helper.add_record(task)
             self.db_helper.log_insert(task, self.token.get('user_id'))
-            return jsonify({'message': 'Task added successfully', 'status': 201})
+            return jsonify({
+                'message': 'Task added successfully',
+                'id': str(task.task_id),
+                'name': task.name,
+                'project_name': project.name,
+                'start_date': task.start_date,
+                'end_date': task.end_date,
+                'status': 201})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -1725,9 +1765,22 @@ class ProfileController:
         if not user:
             return jsonify({'message': 'User not found', 'status': 404}), 404
         
-        file = request.files['photo']
-        if not file:
+        if 'file' not in request.files:
             return jsonify({'message': 'No file provided', 'status': 400}), 400
-        
-        files = s3.upload_file_to_object(user_id, 'timechronos', file)
-        pass
+    
+        file = request.files['file']
+     
+        try:
+            s3_key = f'User_profile/{file}'
+            
+            file_url = s3.put_object_in_s3(s3_key, 'timechronos', file)
+            if not file_url:
+                return jsonify({'message': 'Failed to upload profile photo', 'status': 500}), 500
+
+            user.profile_photo_url = file_url
+            self.db_helper.update_record()
+
+            return jsonify({'message': 'Profile photo uploaded successfully', 'url': file_url, 'status': 200}), 200
+        except Exception as e:
+            return jsonify({'message': f'An error occurred: {str(e)}', 'status': 500}), 500
+
