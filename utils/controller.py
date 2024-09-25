@@ -367,8 +367,8 @@ class UserController:
                 'email': user.email,
                 'phone': user.phone,
                 'gender': user.gender,
-                'supervisor_name': supervisor.name,
-                'approver_name': approver.name,
+                'supervisor_name': supervisor.firstname,
+                'approver_name': approver.firstname,
                 'is_active': user.is_active,
                 'status': 201})
         except Exception as e:
@@ -913,7 +913,7 @@ class TaskController:
             self.db_helper.log_insert(task, self.token.get('user_id'))
             return jsonify({
                 'message': 'Task added successfully',
-                'id': str(task.task_id),
+                'id': str(task.id),
                 'name': task.name,
                 'project_name': project.name,
                 'start_date': task.start_date,
