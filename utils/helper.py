@@ -153,8 +153,6 @@ class AuthorizationHelper:
             if not user_id:
                 return jsonify({'message': 'Invalid token: user_id not found', 'status': 401}), 401
             
-            print(jti)
-            
             return {
                 'message': 'Access granted',
                 'email': identity,

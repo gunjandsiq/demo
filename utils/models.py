@@ -155,7 +155,7 @@ class HistoryLogger(db.Model, TimeStamp):
     new_data = db.Column(db.JSON) 
     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id'), nullable=True) 
 
-class BlacklistToken(db.Model):
+class BlacklistToken(db.Model, TimeStamp):
     __tablename__ = 'blacklist_tokens'
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
