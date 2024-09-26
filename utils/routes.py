@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from utils.models import db, BlacklistToken
-from utils.helper import jwt, S3Helper
+from utils.helper import jwt, load_dim_date
 from utils.controller import UserController, ClientController, ProjectController, TaskController, TaskHourController, Controller, TimesheetController, CompanyController, ApproverController, ProfileController
 
 api = Blueprint('routes', __name__)
@@ -40,15 +40,13 @@ def check_if_token_in_blacklist(jwt_header, jwt_payload):
 
 @api.route('/')
 def server():
-    s3 = S3Helper()
-    ab = s3.objects_list('timechronos')
-    # return jsonify({'message': 'Server is up and running'})
-    return ab
+    return jsonify({'message': 'Server is up and running'})
 
 @api.route('/createdb')
 def create_db():
     db.create_all()
-    return jsonify({'message': 'Database created'})
+    load_dim_date()
+    return jsonify({'message': 'Database created and DimDate data loaded successfully'})
 
 @api.route('/dropdb')
 def drop_db():
