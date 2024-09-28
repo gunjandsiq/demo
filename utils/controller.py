@@ -736,6 +736,13 @@ class ProjectController:
             
             data = request.get_json()
 
+            if not data or 'client_id' not in data:
+                return jsonify({'message': 'Invalid input: Client Id required', 'status': 400}), 400
+
+            client_id = data['client_id']
+
+            client = Client.query.filter_by(id=client_id, is_archived = False).first()
+
             if 'id' in data:
                 project= Project.query.filter_by(id=data['id']).first()
                 if not project:
@@ -748,6 +755,7 @@ class ProjectController:
 
                     self.db_helper.update_record()
                     return jsonify({'message': 'Project updated successfully', 'status': 200}), 200
+                
             project = Project(is_active=True)
             for key, value in data.items():
                 if hasattr(Project, key): 
@@ -756,7 +764,13 @@ class ProjectController:
             self.db_helper.add_record(project)
             self.db_helper.log_insert(project, self.token.get('user_id'))
 
-            return jsonify({'message': 'Project added successfully', 'id':project.id, 'name':project.name, 'status': 201}), 201
+            return jsonify({
+                'message': 'Project added successfully', 
+                'id':project.id, 
+                'name':project.name, 
+                'client_name':client.name, 
+                'status': 201
+            }), 201
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -899,6 +913,7 @@ class TaskController:
             project_id = data['project_id']
 
             project = Project.query.filter_by(id=project_id, is_archived = False).first()
+            client = Client.query.filter_by(id=project.client_id).first()
 
             existing_task = Task.query.filter_by(name=name, project_id=project_id, is_archived = False).first()
             if existing_task:
@@ -915,10 +930,12 @@ class TaskController:
                 'message': 'Task added successfully',
                 'id': str(task.id),
                 'name': task.name,
+                'client_name': client.name,
                 'project_name': project.name,
                 'start_date': task.start_date,
                 'end_date': task.end_date,
-                'status': 201})
+                'status': 201
+            })
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
 
@@ -926,7 +943,15 @@ class TaskController:
         try:
             if not self.token:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
+            
             data = request.get_json()
+            if not data or not 'project_id' in data:
+                return jsonify({'message': 'Invalid input: Project Id required', 'status': 400}), 400
+
+            project_id = data['project_id']
+
+            project = Project.query.filter_by(id=project_id, is_archived = False).first()
+            client = Client.query.filter_by(id=project.client_id).first()
             
             if 'id' in data:
                 task= Task.query.filter_by(id=data['id']).first()
@@ -948,7 +973,17 @@ class TaskController:
 
             self.db_helper.add_record(task)
             self.db_helper.log_insert(task, self.token.get('user_id'))
-            return jsonify({'message': 'Task added successfully', 'status': 201}), 201
+            return jsonify({
+                'message': 'Task added successfully',
+                'id': str(task.id),
+                'name': task.name,
+                'client_name': client.name,
+                'project_name': project.name,
+                'start_date': task.start_date,
+                'end_date': task.end_date,
+                'status': 201
+            })
+        
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
         
