@@ -360,7 +360,8 @@ class UserController:
 
             return jsonify({
                 'message': 'User added successfully', 
-                'id': user.id,
+                'id': str(user.id),
+                'name': f'{user.firstname} {user.lastname}' if user.firstname and user.lastname else user.firstname, 
                 'firstname': user.firstname,
                 'lastname': user.lastname,
                 'role': user.role,
