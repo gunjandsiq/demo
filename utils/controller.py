@@ -721,9 +721,12 @@ class ProjectController:
 
             return jsonify({
                 'message': 'Project added successfully', 
-                'id':project.id, 
+                'id':str(project.id), 
                 'name':project.name, 
-                'client_name':client.name, 
+                'client_id': str(client.client_id), 
+                'client_name':client.name,
+                'start_date': project.start_date.strftime('%Y-%m-%d') if project.start_date else None,
+                'end_date': project.end_date.strftime('%Y-%m-%d') if project.end_date else None,
                 'status': 201
             }), 201
         except Exception as e:
@@ -766,9 +769,12 @@ class ProjectController:
 
             return jsonify({
                 'message': 'Project added successfully', 
-                'id':project.id, 
+                'id':str(project.id), 
                 'name':project.name, 
+                'client_id': str(client.client_id),
                 'client_name':client.name, 
+                'start_date': project.start_date.strftime('%Y-%m-%d') if project.start_date else None,
+                'end_date': project.end_date.strftime('%Y-%m-%d') if project.end_date else None,
                 'status': 201
             }), 201
         except Exception as e:
@@ -930,10 +936,12 @@ class TaskController:
                 'message': 'Task added successfully',
                 'id': str(task.id),
                 'name': task.name,
+                'client_id': str(client.client_id),
                 'client_name': client.name,
+                'project_id': str(project.id),
                 'project_name': project.name,
-                'start_date': task.start_date,
-                'end_date': task.end_date,
+                'start_date': task.start_date.strftime('%Y-%m-%d'),
+                'end_date': task.end_date.strftime('%Y-%m-%d'),
                 'status': 201
             })
         except Exception as e:
@@ -977,10 +985,12 @@ class TaskController:
                 'message': 'Task added successfully',
                 'id': str(task.id),
                 'name': task.name,
+                'client_id': str(client.client_id),
                 'client_name': client.name,
+                'project_id': str(project.id),
                 'project_name': project.name,
-                'start_date': task.start_date,
-                'end_date': task.end_date,
+                'start_date': task.start_date.strftime('%Y-%m-%d'),
+                'end_date': task.end_date.strftime('%Y-%m-%d'),
                 'status': 201
             })
         
