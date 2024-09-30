@@ -1319,9 +1319,6 @@ class TaskHourController:
                     return jsonify({'message': 'Cannot add/update task hours for a timesheet that is not in draft or rejected state', 'status': 400}), 400
                 
                 if taskhours is None:
-                    existing_taskhour = TaskHours.query.filter_by(task_id=task_id, timesheet_id=timesheet_id).first()
-                    if existing_taskhour:
-                        return jsonify({'message': f'TaskHours already exists for task_id {task_id}', 'status': 409}), 409
 
                     values = entry['values']
                     if len(values) != 7:
