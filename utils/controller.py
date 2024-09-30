@@ -1298,76 +1298,57 @@ class TaskHourController:
                 return jsonify({'message': 'Invalid input: a list of task hours objects is required', 'status': 400}), 400
 
             for entry in data:
-                required_fields = ['values', 'task_id', 'timesheet_id']
+                required_fields = ['task_id', 'timesheet_id']
+
+                if 'id' in entry:
+                    taskhours_id = entry['id']
+                    taskhours = TaskHours.query.filter_by(id=taskhours_id).first()        
+                    if not taskhours:
+                        return jsonify({'message': f'TaskHours with ID {taskhours_id} not found', 'status': 404}), 404
+                    
+                else:
+                    taskhours = None
                 
-                if any(field not in entry for field in required_fields):
-                    return jsonify({'message': 'Invalid input: each object must contain values, task_id, and timesheet_id', 'status': 400}), 400
-
-                values = entry['values']
-                if len(values) != 7:
-                    return jsonify({'message': 'Values array must have exactly 7 elements', 'status': 400}), 400
-
                 task_id = entry['task_id']
                 timesheet_id = entry['timesheet_id']
-
-                timesheet = Timesheet.query.filter_by(id = timesheet_id, is_archived=False).first()
+                timesheet = Timesheet.query.filter_by(id=timesheet_id, is_archived=False).first()
                 if not timesheet:
                     return jsonify({'message': 'Timesheet not found or does not belong to this User', 'status': 404}), 404
                 
                 if timesheet.approval not in [Approval.DRAFT, Approval.REJECTED]:
-                    return jsonify({'message': 'Cannot add taskhours for a timesheet that is not in draft or rejected state', 'status': 400}), 400
-
-                existing_taskhour = TaskHours.query.filter_by(task_id=task_id, timesheet_id=timesheet_id).first()
-                if existing_taskhour:
-                    return jsonify({'message': f'TaskHours already exists for task_id {task_id}', 'status': 409}), 409
-
-                taskhour = TaskHours(values=values, task_id=task_id, timesheet_id=timesheet_id)
-                self.db_helper.add_record(taskhour)
-                self.db_helper.log_insert(taskhour, self.token.get('user_id'))
-
-            return jsonify({'message': 'TaskHours added successfully', 'status': 201})
-        except Exception as e:
-            return jsonify({'message': str(e), 'status': 500}), 500
-
-    def update_taskhours(self):
-        try:
-            data = request.get_json()
-            
-            if not data or not isinstance(data, list):
-                return jsonify({'message': 'Invalid input: List of taskhour objects required', 'status': 400}), 400
-
-            for taskhour_data in data:
-                if not 'id' in taskhour_data:
-                    return jsonify({'message': 'Invalid input: TaskHours Id required for each object', 'status': 400}), 400
+                    return jsonify({'message': 'Cannot add/update task hours for a timesheet that is not in draft or rejected state', 'status': 400}), 400
                 
-                taskhours_id = taskhour_data['id']
-                values = taskhour_data.get('values')
-                task_id = taskhour_data.get('task_id')
-
-                taskhours = TaskHours.query.filter_by(id=taskhours_id).first()
-                if not taskhours:
-                    return jsonify({'message': f'TaskHours with ID {taskhours_id} not found', 'status': 404}), 404
-
-                timesheet = Timesheet.query.filter_by(id=taskhours.timesheet_id, is_archived=False).first()
-                if not timesheet or timesheet.approval not in [Approval.DRAFT, Approval.REJECTED]:
-                    return jsonify({'message': f'Cannot update taskhours for timesheet that is not in draft state', 'status': 400}), 400
-
-                if values and isinstance(values, list):
-                    taskhours.values = values
-                else:
-                    return jsonify({'message': f'Invalid input: Values must be a list for TaskHours {taskhours_id}', 'status': 400}), 400 
-                
-                if task_id:
-                    existing_taskhour = TaskHours.query.filter_by(task_id=task_id, timesheet_id=taskhours.timesheet_id).first()
-                    if existing_taskhour and existing_taskhour.id != taskhours_id:
+                if taskhours is None:
+                    existing_taskhour = TaskHours.query.filter_by(task_id=task_id, timesheet_id=timesheet_id).first()
+                    if existing_taskhour:
                         return jsonify({'message': f'TaskHours already exists for task_id {task_id}', 'status': 409}), 409
-                    taskhours.task_id = task_id
 
-                self.db_helper.update_record()
+                    values = entry['values']
+                    if len(values) != 7:
+                        return jsonify({'message': 'Values array must have exactly 7 elements', 'status': 400}), 400
+                    
+                    taskhours = TaskHours(values=values, task_id=task_id, timesheet_id=timesheet_id)
+                    self.db_helper.add_record(taskhours)
+                    self.db_helper.log_insert(taskhours, self.token.get('user_id'))
+                else:
+                    values = entry.get('values')
+                    if values and isinstance(values, list):
+                        taskhours.values = values
+                    else:
+                        return jsonify({'message': f'Invalid input: Values must be a list for TaskHours {taskhours_id}', 'status': 400}), 400
+                    
+                    if task_id:
+                        existing_taskhour = TaskHours.query.filter_by(task_id=task_id, timesheet_id=taskhours.timesheet_id).first()
+                        if existing_taskhour and existing_taskhour.id != taskhours_id:
+                            return jsonify({'message': f'TaskHours already exists for task_id {task_id}', 'status': 409}), 409
+                        taskhours.task_id = task_id
 
-            return jsonify({'message': 'TaskHours updated successfully', 'status': 200}), 200
+                    self.db_helper.update_record()
+
+            return jsonify({'message': 'TaskHours saved successfully', 'status': 200 if taskhours else 201}), 200 if taskhours else 201
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
+
         
     def delete_taskhours(self):
         try:

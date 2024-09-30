@@ -305,21 +305,14 @@ def timesheet_list():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     
-@api.route('/addtaskhours', methods=['POST'])
-def add_taskhours():
+@api.route('/savetaskhours', methods=['POST'])
+def save_taskhours():
     try:
         taskhour = TaskHourController()
         return taskhour.add_taskhours()
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@api.route('/updatetaskhours', methods=['POST']) 
-def update_taskhours():
-    try:
-        taskhour = TaskHourController()
-        return taskhour.update_taskhours()
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500
 
 @api.route('/deletetaskhours', methods=['POST'])   
 def delete_taskhours():
