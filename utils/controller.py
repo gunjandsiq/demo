@@ -1335,9 +1335,6 @@ class TaskHourController:
                         return jsonify({'message': f'Invalid input: Values must be a list for TaskHours {taskhours_id}', 'status': 400}), 400
                     
                     if task_id:
-                        existing_taskhour = TaskHours.query.filter_by(task_id=task_id, timesheet_id=taskhours.timesheet_id).first()
-                        if existing_taskhour and existing_taskhour.id != taskhours_id:
-                            return jsonify({'message': f'TaskHours already exists for task_id {task_id}', 'status': 409}), 409
                         taskhours.task_id = task_id
 
                     self.db_helper.update_record()
