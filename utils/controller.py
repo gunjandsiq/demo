@@ -724,7 +724,7 @@ class ProjectController:
                 'message': 'Project added successfully', 
                 'id':str(project.id), 
                 'name':project.name, 
-                'client_id': str(client.client_id), 
+                'client_id': str(client.id), 
                 'client_name':client.name,
                 'start_date': project.start_date.strftime('%Y-%m-%d') if project.start_date else None,
                 'end_date': project.end_date.strftime('%Y-%m-%d') if project.end_date else None,
