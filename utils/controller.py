@@ -941,8 +941,8 @@ class TaskController:
                 'client_name': client.name,
                 'project_id': str(project.id),
                 'project_name': project.name,
-                'start_date': task.start_date.strftime('%Y-%m-%d'),
-                'end_date': task.end_date.strftime('%Y-%m-%d'),
+                'start_date': task.start_date,
+                'end_date': task.end_date,
                 'status': 201
             })
         except Exception as e:
@@ -990,8 +990,8 @@ class TaskController:
                 'client_name': client.name,
                 'project_id': str(project.id),
                 'project_name': project.name,
-                'start_date': task.start_date.strftime('%Y-%m-%d'),
-                'end_date': task.end_date.strftime('%Y-%m-%d'),
+                'start_date': task.start_date,
+                'end_date': task.end_date,
                 'status': 201
             })
         
