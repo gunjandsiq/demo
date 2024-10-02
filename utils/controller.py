@@ -1779,7 +1779,8 @@ class ProfileController:
             'address': user.address if user.address else None,
             'gender': user.gender,
             'supervisor_name': f'{supervisor.firstname} {supervisor.lastname}' if supervisor.lastname else supervisor.firstname,
-            'approver_name': f'{approver.firstname} {approver.lastname}' if supervisor.lastname else supervisor.firstname
+            'approver_name': f'{approver.firstname} {approver.lastname}' if supervisor.lastname else supervisor.firstname,
+            'url': user.profile_photo_url
         }
         
         return jsonify({'message': 'Profile retrieved successfully', 'data': profile_data, 'status': 200}), 200
@@ -1801,16 +1802,16 @@ class ProfileController:
         try:
             s3_key = f'{user_id}/{file.filename}'
             
-            file_url = s3.put_object_in_s3(file, 'timechronos', s3_key)
-            if not file_url:
+            res = s3.put_object_in_s3(file, 'timechronos', s3_key)
+            if not res:
                 return jsonify({'message': 'Failed to upload profile photo', 'status': 500}), 500
             
-            res = s3.generate_presigned_of_img('timechronos', s3_key)
+            file_url = s3.generate_presigned_of_img('timechronos', s3_key)
 
             user.profile_photo_url = file_url
             self.db_helper.update_record()
 
-            return jsonify({'message': 'Profile photo uploaded successfully', 'url': res, 'status': 200}), 200
+            return jsonify({'message': 'Profile photo uploaded successfully', 'url': file_url, 'status': 200}), 200
         except Exception as e:
             return jsonify({'message': f'An error occurred: {str(e)}', 'status': 500}), 500
 
