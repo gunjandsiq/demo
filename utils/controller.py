@@ -1722,7 +1722,7 @@ class ApproverController:
                     if not timesheet_list:
                         return jsonify({'message': 'No timesheets found for approval', 'timesheets': [], 'status': 200}), 200
             
-                return jsonify({'message': 'Timesheets and approver retrieved successfully', 'timesheets': timesheet_list, 'status': 200})
+            return jsonify({'message': 'Timesheets and approver retrieved successfully', 'timesheets': timesheet_list, 'status': 200})
             
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
