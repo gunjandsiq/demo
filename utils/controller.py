@@ -1798,6 +1798,12 @@ class ProfileController:
             return jsonify({'message': 'No file provided', 'status': 400}), 400
     
         file = request.files['file']
+
+        if file.filename == '':
+            return jsonify({'message': 'No selected file', 'status': 400}), 400
+        
+        if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            return jsonify({'message': 'Invalid file type. Only .png, .jpg, and .jpeg are allowed.', 'status': 400}), 400
      
         try:
             s3_key = f'{user_id}/{file.filename}'
@@ -1834,6 +1840,8 @@ class Statastics:
         if not user:
             return jsonify({'message': 'User not found', 'status': 404}), 404
         
+        approvers = User.query.filter_by(approver_id=user.id).all()
+        
         stats_data = {
             'total_employees': User.query.filter_by(company_id=company_id, is_archived=False).count(),
             'active_employees': User.query.filter_by(company_id=company_id, is_archived=False, is_active=True).count(),
@@ -1847,8 +1855,9 @@ class Statastics:
                                                         Client.company_id == company_id, Task.is_archived == False).count(),
             'active_tasks': Task.query.join(Project, Task.project_id == Project.id).join(Client, Project.client_id == Client.id).filter(
                                                         Client.company_id == company_id, Task.is_archived == False, Task.is_active == True).count(),
-            'total timesheet': Timesheet.query.filter_by(user_id = user_id , is_archived = False).count(),
+            'total timesheet': Timesheet.query.filter_by(user_id = user.id , is_archived = False).count(),
             'total_pending_approvals': Timesheet.query.filter_by(user_id = user_id, approval = Approval.PENDING,  is_archived = False).count(),
+            'total_approver_pending_approvals' : sum(Timesheet.query.filter_by(user_id=approver.id, approval=Approval.PENDING, is_archived=False).count()for approver in approvers)
         }
 
         return jsonify({'message': stats_data, 'status': 200}), 200

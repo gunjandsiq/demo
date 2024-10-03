@@ -192,7 +192,7 @@ class S3Helper:
 
     def __init__(self):
         self.client_s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id,
-                                  aws_secret_access_key=aws_secret_access_key_id, region_name='us-east-1')
+                                  aws_secret_access_key=aws_secret_access_key_id, region_name='us-east-2')
         
         # self.bucket_name = os.getenv('AWS_BUCKET_NAME')
         # if not self.bucket_name:
