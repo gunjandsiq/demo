@@ -543,12 +543,17 @@ class ClientController:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
             company_id = self.token.get('company_id')
+            user_id = self.token.get('user_id')
             name = data['name']
             email = data['email']
             phone = data.get('phone')
 
             if not phone.isdigit():
                     return jsonify({'message': 'Invalid input: Please write correct no.', 'status': 400}), 400
+            
+            user = User.query.filter_by(id=user_id, company_id=company_id, role='Admin').first()
+            if not user:
+                return jsonify({'message': 'User is not an admin', 'status': 404}), 404
 
             existing_client = Client.query.filter_by(email=email, company_id=company_id, is_archived = False).first()
             if existing_client:
@@ -575,12 +580,18 @@ class ClientController:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
             company_id = self.token.get('company_id')
+            user_id = self.token.get('user_id')
             
             data = request.get_json()
             if not data or not 'id' in data:
                 return jsonify({'message': 'Invalid input: Client ID is required', 'status': 400}), 400
 
             client_id = data['id']
+
+            user = User.query.filter_by(id=user_id, company_id=company_id, role='Admin').first()
+            if not user:
+                return jsonify({'message': 'User is not an admin', 'status': 404}), 404
+            
             client = Client.query.filter_by(id=client_id, company_id=company_id, is_archived = False).first()
             if not client:
                 return jsonify({'message': 'Client not found or does not belong to this company', 'status': 404}), 404
@@ -612,12 +623,17 @@ class ClientController:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
             company_id = self.token.get('company_id')
+            user_id = self.token.get('user_id')
         
             data = request.get_json()
             if not data or not 'id' in data:
                 return jsonify({'message': 'Invalid input: Client ID is required', 'status': 400}), 400
 
             client_id = data['id']
+
+            user = User.query.filter_by(id=user_id, company_id=company_id, role='Admin').first()
+            if not user:
+                return jsonify({'message': 'User is not an admin', 'status': 404}), 404
 
             client = Client.query.filter_by(id=client_id, company_id=company_id, is_archived = False).first()
             if not client:
@@ -698,6 +714,9 @@ class ProjectController:
             if not self.token:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
+            user_id = self.token.get('user_id')
+            company_id = self.token.get('company_id')
+
             data = request.get_json()
 
             if not data or 'name' not in data or 'client_id' not in data:
@@ -706,7 +725,11 @@ class ProjectController:
             name = data['name']
             client_id = data['client_id']
 
-            client = Client.query.filter_by(id=client_id, is_archived = False).first()
+            user = User.query.filter_by(id=user_id, company_id=company_id, role='Admin').first()
+            if not user:
+                return jsonify({'message': 'User is not an admin', 'status': 404}), 404
+
+            client = Client.query.filter_by(id=client_id, company_id=company_id, is_archived = False).first()
 
             existing_project = Project.query.filter_by(name=name, client_id=client_id, is_archived = False).first()
             if existing_project:
@@ -738,6 +761,9 @@ class ProjectController:
             if not self.token:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
+            user_id = self.token.get('user_id')
+            company_id = self.token.get('company_id')
+
             data = request.get_json()
 
             if not data or 'client_id' not in data:
@@ -745,7 +771,11 @@ class ProjectController:
 
             client_id = data['client_id']
 
-            client = Client.query.filter_by(id=client_id, is_archived = False).first()
+            user = User.query.filter_by(id=user_id, company_id=company_id, role='Admin').first()
+            if not user:
+                return jsonify({'message': 'User is not an admin', 'status': 404}), 404
+
+            client = Client.query.filter_by(id=client_id, company_id=company_id, is_archived = False).first()
 
             if 'id' in data:
                 project= Project.query.filter_by(id=data['id']).first()
@@ -783,11 +813,18 @@ class ProjectController:
 
     def update_project(self):
         try:
+            user_id = self.token.get('user_id')
+            company_id = self.token.get('company_id')
+
             data = request.get_json()
             if not data or not 'id' in data:
                 return jsonify({'message': 'Invalid input: Project Id required', 'status': 400}), 400
 
             project_id = data['id']
+
+            user = User.query.filter_by(id=user_id, company_id=company_id, role='Admin').first()
+            if not user:
+                return jsonify({'message': 'User is not an admin', 'status': 404}), 404
 
             project = Project.query.filter_by(id=project_id, is_archived = False).first()
             if not project:
@@ -814,11 +851,18 @@ class ProjectController:
 
     def delete_project(self):
         try:
+            user_id = self.token.get('user_id')
+            company_id = self.token.get('company_id')
+
             data = request.get_json()
             if not data or not 'id' in data:
                 return jsonify({'message': 'Invalid input: Project Id required', 'status': 400}), 400
 
             project_id = data['id']
+
+            user = User.query.filter_by(id=user_id, company_id=company_id, role='Admin').first()
+            if not user:
+                return jsonify({'message': 'User is not an admin', 'status': 404}), 404
 
             project = Project.query.filter_by(id=project_id, is_archived = False).first()
             if not project:
@@ -912,12 +956,19 @@ class TaskController:
 
     def add_task(self):
         try:
+            user_id = self.token.get('user_id')
+            company_id = self.token.get('company_id')
+
             data = request.get_json()
             if not data or not 'name' in data or not 'project_id' in data:
                 return jsonify({'message': 'Invalid input: Task name and Project Id required', 'status': 400}), 400
 
             name = data['name']
             project_id = data['project_id']
+
+            user = User.query.filter_by(id=user_id, company_id=company_id, role='Admin').first()
+            if not user:
+                return jsonify({'message': 'User is not an admin', 'status': 404}), 404
 
             project = Project.query.filter_by(id=project_id, is_archived = False).first()
             client = Client.query.filter_by(id=project.client_id).first()
@@ -953,11 +1004,18 @@ class TaskController:
             if not self.token:
                 return jsonify({'message': 'Token not found', 'status': 401}), 401
             
+            user_id = self.token.get('user_id')
+            company_id = self.token.get('company_id')
+            
             data = request.get_json()
             if not data or not 'project_id' in data:
                 return jsonify({'message': 'Invalid input: Project Id required', 'status': 400}), 400
 
             project_id = data['project_id']
+
+            user = User.query.filter_by(id=user_id, company_id=company_id, role='Admin').first()
+            if not user:
+                return jsonify({'message': 'User is not an admin', 'status': 404}), 404
 
             project = Project.query.filter_by(id=project_id, is_archived = False).first()
             client = Client.query.filter_by(id=project.client_id).first()
@@ -1000,11 +1058,18 @@ class TaskController:
         
     def update_task(self):
         try:
+            user_id = self.token.get('user_id')
+            company_id = self.token.get('company_id')
+
             data = request.get_json()
             if not data or not 'id' in data:
                 return jsonify({'message': 'Invalid input: Task Id required', 'status': 400}), 400
 
             task_id = data['id']
+
+            user = User.query.filter_by(id=user_id, company_id=company_id, role='Admin').first()
+            if not user:
+                return jsonify({'message': 'User is not an admin', 'status': 404}), 404
 
             task = Task.query.filter_by(id=task_id, is_archived = False).first()
             if not task:
@@ -1031,11 +1096,18 @@ class TaskController:
 
     def delete_task(self):
         try:
+            user_id = self.token.get('user_id')
+            company_id = self.token.get('company_id')
+
             data = request.get_json()
             if not data or not 'id' in data:
                 return jsonify({'message': 'Invalid input: Task Id required', 'status': 400}), 400
 
             task_id = data['id']
+
+            user = User.query.filter_by(id=user_id, company_id=company_id, role='Admin').first()
+            if not user:
+                return jsonify({'message': 'User is not an admin', 'status': 404}), 404
 
             task = Task.query.filter_by(id=task_id, is_archived = False).first()
             if not task:
