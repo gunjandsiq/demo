@@ -1814,4 +1814,42 @@ class ProfileController:
             return jsonify({'message': 'Profile photo uploaded successfully', 'url': file_url, 'status': 200}), 200
         except Exception as e:
             return jsonify({'message': f'An error occurred: {str(e)}', 'status': 500}), 500
+        
+class Statastics:
+
+    def __init__(self):
+        self.db_helper = DbHelper()
+        self.auth = AuthorizationHelper()
+        self.token = self.auth.get_jwt_token()
+
+    def get_stats(self):
+        user_id = self.token.get('user_id')
+        company_id = self.token.get('company_id')
+
+        company = Company.query.get(company_id)
+        if not company:
+            return jsonify({'message': 'Company not found', 'status': 404}), 404
+
+        user = User.query.filter_by(id=user_id, company_id=company_id, is_archived=False).first()
+        if not user:
+            return jsonify({'message': 'User not found', 'status': 404}), 404
+        
+        stats_data = {
+            'total_employees': User.query.filter_by(company_id=company_id, is_archived=False).count(),
+            'active_employees': User.query.filter_by(company_id=company_id, is_archived=False, is_active=True).count(),
+            'total_clients': Client.query.filter_by(company_id=company_id, is_archived=False).count(),
+            'active_clients': Client.query.filter_by(company_id=company_id, is_archived=False, is_active=True).count(),
+            'total_projects': Project.query.join(Client, Project.client_id == Client.id).filter(Client.company_id == company_id, 
+                                                         Client.is_archived == False, Project.is_archived == False).count(),
+            'active_projects': Project.query.join(Client, Project.client_id == Client.id).filter(Client.company_id == company_id, 
+                                                         Client.is_archived == False, Project.is_archived == False, Project.is_active == True).count(),
+            'total_tasks': Task.query.join(Project, Task.project_id == Project.id).join(Client, Project.client_id == Client.id).filter(
+                                                        Client.company_id == company_id, Task.is_archived == False).count(),
+            'active_tasks': Task.query.join(Project, Task.project_id == Project.id).join(Client, Project.client_id == Client.id).filter(
+                                                        Client.company_id == company_id, Task.is_archived == False, Task.is_active == True).count(),
+            'total timesheet': Timesheet.query.filter_by(user_id = user_id , is_archived = False).count(),
+            'total_pending_approvals': Timesheet.query.filter_by(user_id = user_id, approval = Approval.PENDING,  is_archived = False).count(),
+        }
+
+        return jsonify({'message': stats_data, 'status': 200}), 200
 

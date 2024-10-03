@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from utils.models import db, BlacklistToken
 from utils.helper import jwt, load_dim_date
-from utils.controller import UserController, ClientController, ProjectController, TaskController, TaskHourController, Controller, TimesheetController, CompanyController, ApproverController, ProfileController
+from utils.controller import UserController, ClientController, ProjectController, TaskController, TaskHourController, Controller, TimesheetController, CompanyController, ApproverController, ProfileController, Statastics
 
 api = Blueprint('routes', __name__)
 
@@ -399,6 +399,14 @@ def upload_profile():
     try:
         profile = ProfileController()
         return profile.upload_profile_photo()
+    except Exception as e:
+        return jsonify({'message': str(e)}), 
+
+@api.route('/getstats')
+def get_stats():
+    try:
+        stats = Statastics()
+        return stats.get_stats()
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     
