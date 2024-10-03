@@ -70,7 +70,7 @@ class User(db.Model, TimeStamp):
     date_of_birth = db.Column(db.Date)
     address = db.Column(db.String(255))
     password = db.Column(db.String)
-    profile_photo_url = db.Column(db.String(255))
+    profile_photo_url = db.Column(db.String())
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('company.id', ondelete="CASCADE"), nullable=False)
     supervisor_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id', ondelete="SET NULL"))
     approver_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id', ondelete="SET NULL"))
