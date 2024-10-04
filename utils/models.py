@@ -162,3 +162,10 @@ class BlacklistToken(db.Model, TimeStamp):
     jti = db.Column(db.String(100), nullable=False)
     blacklisted_on = db.Column(db.DateTime, nullable=False, default=datetime.now)
 
+class Token(db.Model, TimeStamp):
+    __tablename__ = 'token'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('user.id', ondelete="CASCADE"), nullable=False)
+    token = db.Column(db.String(255), nullable=False)
+    token_date = db.Column(db.DateTime(), nullable=False, default=datetime.now)
+

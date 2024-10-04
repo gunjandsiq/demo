@@ -1,5 +1,5 @@
 from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity, jwt_required, S3Helper
-from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval, BlacklistToken
+from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval, BlacklistToken, Token
 from flask import jsonify, request
 from sqlalchemy import func
 
@@ -115,6 +115,7 @@ class Controller:
         
     def forget_password(self):
         try:
+            db_helper = DbHelper()
             code = CodeHelper()
             ses = SesHelper()
             data = request.get_json()
@@ -132,6 +133,9 @@ class Controller:
             subject = "Password Reset Request"
             body_html = f"To reset your password, click the following link: <a href={reset_url}>{reset_url}</a>"
             ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
+
+            query = Token(user_id = user.id, token = token)
+            db_helper.add_record(query)
 
             return jsonify({'message': 'Password reset link sent to your email', 'status': 200}), 200
         except Exception as e:
