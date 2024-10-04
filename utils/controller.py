@@ -2,6 +2,7 @@ from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, Authori
 from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval, BlacklistToken, Token
 from flask import jsonify, request
 from sqlalchemy import func
+from celery_config import env
 
 class Controller:
 
@@ -1882,11 +1883,11 @@ class ProfileController:
         try:
             s3_key = f'{user_id}/{file.filename}'
             
-            res = s3.put_object_in_s3(file, 'timechronos', s3_key)
+            res = s3.put_object_in_s3(file, env['bucket_name'], s3_key)
             if not res:
                 return jsonify({'message': 'Failed to upload profile photo', 'status': 500}), 500
             
-            file_url = s3.generate_presigned_of_img('timechronos', s3_key)
+            file_url = s3.generate_presigned_of_img(env['bucket_name'], s3_key)
 
             user.profile_photo_url = file_url
             self.db_helper.update_record()

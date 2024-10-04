@@ -4,7 +4,7 @@ from utils.routes import api
 from utils.helper import auth, jwt
 from celery_config import celery
 from flask_cors import CORS
-from datetime import timedelta
+from celery_config import env
 
 app = Flask(__name__)
 
@@ -25,11 +25,11 @@ celery.conf.update(
     broker_connection_retry_on_startup=True,
 	)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:first@localhost:5432/postgres"
+app.config['SQLALCHEMY_DATABASE_URI'] = env['db']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = "mysecretkey"
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
-app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = env['jwt-access-token-expiration']
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = env['jwt-refresh-token-expiration']
 app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
 

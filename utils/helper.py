@@ -6,12 +6,10 @@ from itsdangerous import URLSafeTimedSerializer
 from celery_config import celery
 from sqlalchemy.inspection import inspect
 from sqlalchemy.sql import text
+from celery_config import env
 
 jwt = JWTManager()
 auth = Blueprint('auth', __name__)
-
-aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
-aws_secret_access_key_id = os.getenv('AWS_SECRET_ACCESS_KEY')
 
 class DbHelper:   
 
@@ -85,6 +83,7 @@ class DbHelper:
 
     def log_delete(self, record, user_id=None):
         self.log_history(record.__class__, record, 'delete', user_id)
+
 class PasswordHelper:
     def hash_password(self, password):
         try:
@@ -170,8 +169,8 @@ class SesHelper:
     @celery.task(bind=True)
     def send_email(self, source, destination, subject, body_html, *args, **kwargs):
         try:
-            client_ses = boto3.client('ses', aws_access_key_id=aws_access_key_id,
-                                  aws_secret_access_key=aws_secret_access_key_id, region_name='us-east-1')
+            client_ses = boto3.client('ses', aws_access_key_id=env['aws_access_key_id'],
+                                  aws_secret_access_key=env['aws_secret_access_key_id'], region_name='us-east-1')
             
             response = client_ses.send_email(
                 Source=source,  # sender's email address
@@ -191,12 +190,9 @@ class SesHelper:
 class S3Helper:
 
     def __init__(self):
-        self.client_s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id,
-                                  aws_secret_access_key=aws_secret_access_key_id, region_name='us-east-2')
+        self.client_s3 = boto3.client('s3', aws_access_key_id=env['aws_access_key_id'],
+                                  aws_secret_access_key=env['aws_secret_access_key_id'], region_name='us-east-2')
         
-        # self.bucket_name = os.getenv('AWS_BUCKET_NAME')
-        # if not self.bucket_name:
-        #     raise ValueError("AWS_BUCKET_NAME environment variable is not set")
         
     # Returns a list of all buckets 
     def bucket_list_names(self):

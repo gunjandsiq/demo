@@ -1,0 +1,57 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+
+# Flask-specific
+instance/
+*.db
+*.sqlite3
+
+# Log files
+*.log
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Pytest cache
+.pytest_cache/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.cache
+coverage/
+nosetests.xml
+unit.xml
+test-results/
+
+# MyPy
+.mypy_cache/
+
+# PyCharm project settings
+.idea/
+
+# VS Code project settings
+.vscode/
+
+# macOS files
+.DS_Store
+
+# Windows thumbnail cache files
+Thumbs.db
+
+# AWS credentials files (if stored locally)
+.aws/
