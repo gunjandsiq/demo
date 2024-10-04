@@ -27,11 +27,17 @@ celery.conf.update(
 
 app.config['SQLALCHEMY_DATABASE_URI'] = env['db']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = "mysecretkey"
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = env['jwt-access-token-expiration']
-app.config['JWT_REFRESH_TOKEN_EXPIRES'] = env['jwt-refresh-token-expiration']
+
+# JWT Configuration
+app.config['JWT_PRIVATE_KEY'] = env['jwt-private-key']
+app.config['JWT_PUBLIC_KEY'] = env['jwt-public-key']
+app.config['JWT_ALGORITHM'] = env['jwt-algo'] 
 app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
+
+#JWT Token Expiration
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = env['jwt-access-token-expiration']
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = env['jwt-refresh-token-expiration']
 
 db.init_app(app)
 jwt.init_app(app)
