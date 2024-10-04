@@ -1927,10 +1927,11 @@ class Statastics:
                                                         Client.company_id == company_id, Task.is_archived == False).count(),
             'active_tasks': Task.query.join(Project, Task.project_id == Project.id).join(Client, Project.client_id == Client.id).filter(
                                                         Client.company_id == company_id, Task.is_archived == False, Task.is_active == True).count(),
-            'total timesheet': Timesheet.query.filter_by(user_id = user.id , is_archived = False).count(),
+            'total_timesheet': Timesheet.query.filter_by(user_id = user.id , is_archived = False).count(),
             'total_pending_approvals': Timesheet.query.filter_by(user_id = user_id, approval = Approval.PENDING,  is_archived = False).count(),
-            'total_approver_pending_approvals' : sum(Timesheet.query.filter_by(user_id=approver.id, approval=Approval.PENDING, is_archived=False).count()for approver in approvers)
+            'total_approver_timesheets': sum(Timesheet.query.filter(Timesheet.user_id == approver.id, Timesheet.approval != Approval.DRAFT).count()for approver in approvers),
+            'total_approver_pending_approvals' : sum(Timesheet.query.filter(Timesheet.user_id == approver.id, Timesheet.approval == Approval.PENDING, Timesheet.is_archived == False).count ()for approver in approvers)
         }
 
-        return jsonify({'message': stats_data, 'status': 200}), 200
+        return jsonify({'stats_data': stats_data, 'status': 200}), 200
 
