@@ -1771,16 +1771,17 @@ class ApproverController:
             users = User.query.filter_by(approver_id=user_id, company_id=company_id, is_archived=False).all()
             if not users:
                 return jsonify({'message': 'User is not approver', 'status': 404}), 404
+                
             
             timesheet_list = []
             for approver in users:
                 timesheets = Timesheet.query.filter(Timesheet.user_id == approver.id, Timesheet.approval != Approval.DRAFT).all()
 
-                if not timesheets:
-                    return jsonify({'message': 'No timesheets found for approval', 'timesheets': [], 'status': 200}), 200
+                if not timesheets and not timesheet_list:
+                    return jsonify({'message': 'No timesheets found for approval', 'timesheets': [], 'status': 404}), 404
             
                 for timesheet in timesheets:
-                    employee = User.query.get(timesheet.user_id)
+                    employee = User.query.get(approver.id)
                     timesheet_data = {
                         'id': timesheet.id,
                         'name': timesheet.name,
@@ -1790,9 +1791,6 @@ class ApproverController:
                         'employee_name': f"{employee.firstname} {employee.lastname}" if employee.firstname and employee.lastname else employee.firstname
                     }
                     timesheet_list.append(timesheet_data)
-
-                    if not timesheet_list:
-                        return jsonify({'message': 'No timesheets found for approval', 'timesheets': [], 'status': 200}), 200
             
             return jsonify({'message': 'Timesheets and approver retrieved successfully', 'timesheets': timesheet_list, 'status': 200})
             
