@@ -282,6 +282,7 @@ class S3Helper:
             print(f"An error occurred: {e}")
             return str(e)
         
+# DimDate query        
 dim_date_insert = """
 INSERT INTO dim_date
 SELECT TO_CHAR(datum,'YYYYMMDD')::INT AS date_id,
@@ -326,7 +327,7 @@ FROM (SELECT '2016-01-01'::DATE+ SEQUENCE.DAY AS datum
       GROUP BY SEQUENCE.DAY) DQ
 ORDER BY 1;
 """
-
+# Method to load dimdate
 def load_dim_date():
     try:
         with db.engine.connect() as connection:
