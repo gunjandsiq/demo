@@ -1454,7 +1454,7 @@ class TaskHourController:
             
             timesheet_id = data['timesheet_id']
             
-            timesheet = Timesheet.query.filter_by(id=timesheet_id, user_id=user_id, is_archived=False).first()
+            timesheet = Timesheet.query.filter_by(id=timesheet_id, is_archived=False).first()
             if not timesheet:
                 return jsonify({'message': 'Timesheet not found', 'status': 404}), 404
 
