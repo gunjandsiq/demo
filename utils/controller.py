@@ -4,6 +4,7 @@ from flask import jsonify, request
 from sqlalchemy import func
 from celery_config import env
 
+url = env['url']
 class Controller:
 
     def __init__(self):
@@ -50,12 +51,16 @@ class Controller:
             user = User(firstname=firstname, lastname=lastname, role=role, email=email, phone=phone, gender=gender, password=hashed_password, company_id=company.id)
             db_helper.add_record(user)
             
-            reset_url = "http://localhost:5173/login"
+            reset_url = f"{url}/login"
             subject = "Welcome to TimeChronos - Simplify your Time Management"
             body_html = f"""
             <h1>Welcome to TimeChronos!</h1>
-            <p>Thank you for signing up {user.firstname} for TimeChronos. We're excited to have you on board.</p>
-            <p>Please click on the link to login: <a href={reset_url}>{reset_url}</a></p>"""
+            <p>Thank you for signing up, {user.firstname}. We're excited to have you on board!</p>
+            <p>To get started, please log in to your account by clicking the link below:</p>
+            <p><a href="{reset_url}" style="color: #4CAF50; text-decoration: none;">{reset_url}</a></p>
+            <p>We hope TimeChronos will simplify your time management and enhance your productivity.</p>
+            <p>Best regards,</p>
+            <p>The TimeChronos Team</p>"""
 
             ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
@@ -129,10 +134,16 @@ class Controller:
                 return jsonify({'message': 'User not found', 'status': 404}), 404
 
             token = code.generate_reset_token(email)
-            reset_url = f"http://localhost:5173/reset-password/{token}"
+            reset_url = f"{url}/reset-password/{token}"
 
             subject = "Password Reset Request"
-            body_html = f"To reset your password, click the following link: <a href={reset_url}>{reset_url}</a>"
+            body_html = f"""
+            <p>Dear {user.firstname},</p>
+            <p>We received a request to reset your password. To proceed, please click the link below:</p>
+            <p><a href="{reset_url}" style="color: #4CAF50; text-decoration: none;">Reset Password</a></p>
+            <p>If you did not request a password reset, please ignore this email or contact support if you have any concerns.</p>
+            <p>Best regards,</p>
+            <p>The TimeChronos Team</p>"""
             ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
             query = Token(user_id = user.id, token = token)
@@ -166,7 +177,12 @@ class Controller:
             db_helper.update_record(user)
 
             subject = "Password reset successfully"
-            body_html = f"Your password has been successfully reset."
+            body_html = f"""
+            <p>Dear {user.firstname},</p>
+            <p>We are pleased to inform you that your password has been successfully reset.</p>
+            <p>If you did not perform this action or suspect any unusual activity, please contact our support team immediately.</p>
+            <p>Best regards,</p>
+            <p>The TimeChronos Team</p>"""
             ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
 
             return jsonify({'message': 'Password reset successfully', 'status': 200}), 200
@@ -205,9 +221,9 @@ class Controller:
 
             subject = "Password change confirmation"
             body_html = f"""
-            <p>Dear{user.firstname},</p>
+            <p>Dear {user.firstname},</p>
             <p>This is to confirm that the password of your account has been successfully changed. Your account is now secured with the new password that you have set.</p>
-            <p>If you did not change your password, please contact us immediately to report any unauthorized access to your account</p>
+            <p>If you did not change your password, please contact us immediately to report any unauthorized access to your account.</p>
             <p>Thank you for using our service.</p>
             <p>Best Regards,</p>
             <p>The TimeChronos Team</p>"""
@@ -344,19 +360,20 @@ class UserController:
             supervisor = User.query.filter_by(id=supervisor_id, company_id=company_id, is_archived = False).first()
             approver = User.query.filter_by(id=approver_id, company_id=company_id, is_archived=False).first()
 
-            login_url = "http://localhost:5173/login"
+            login_url = f"{url}/login"
 
             subject = "Timechronos Account Credentials"
             body_html = f"""
             <p>Dear {user.firstname},</p>
             <p> I hope this  message finds you well.</p>
             <p> I am pleased to inform you that an account has been successfully created for you on Timechronos by an administrator. To access your account, please use the following credentials:</p>
-                    <p> Username: {user.email}</p> 
-                    <p> Password: {password}</p>
+                    <p><strong>Username:</strong> {user.email}</p> 
+                    <p><strong>Password:</strong> {password}</p>
             <p>You can log in to your account by clicking the button below:</p>
-            <a href={login_url}>
-                <button type="button">Login</button>
-            </a>
+            <p>
+                <a href="{login_url}" style="text-decoration: none;">
+                    <button type="button" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Login</button>
+                </a>
             <p>We are excited to have you on board and look forward to seeing you on Timechronos!</p>
             <p>Best Regards,</p>
             <p>The TimeChronos Team</p>"""
@@ -1563,14 +1580,18 @@ class ApproverController:
                 self.db_helper.update_record()
                 #self.db_helper.update_record()(timesheet, user_id)
 
-                subject = 'Timesheet Approved'
+                subject = f'Timesheet Approved for {timesheet.name}'
                 body_html = f'''
                     <h1>Timesheet Approved</h1>
                     <p>Dear {user.firstname},</p>
-                    <p>Your timesheet "{timesheet.name}" has been approved.</p>
-                    <p>Please review it at your convenience.</p>'''
+                    <p>I am  pleased to inform you that your timesheet for "{timesheet.name}" from {timesheet.start_date} to {timesheet.end_date} has been approved and reviewed.</p>
+                    <p><strong>Remarks:</strong> --------------</p>
+                    <p>Thank you for attention to detail and timely submission.</p>
+                    
+                    <p>Best regards,</p>
+                    <p>The TimeChronos Team</p>'''
 
-                ses.send_email.delay(approver.email, user.email, subject, body_html)
+                ses.send_email.delay('contact@digitalshelfiq.com', user.email, subject, body_html)
                 return jsonify({'message': 'Timesheet approved successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
@@ -1616,14 +1637,18 @@ class ApproverController:
                 self.db_helper.update_record()
                 #self.db_helper.update_record()(timesheet, user_id)
 
-                subject = 'Timesheet Rejected'
+                subject = f'Timesheet Rejected for {timesheet.name}'
                 body_html = f'''
                     <h1>Timesheet Rejected</h1>
                     <p>Dear {user.firstname},</p>
-                    <p>Your timesheet "{timesheet.name}" has been rejected, because of this "{feedback}"</p>
-                    <p>Please review the reason for rejection and make necessary adjustments.</p>'''
+                    <p>I regret to inform that your timesheet for the "{timesheet.name}" from {timesheet.start_date} to {timesheet.end_date} has been rejected due to following reasons:</p><p><strong>Feedback:</strong> "{feedback}"</p>
+                    <p>Please make the  necessary corrections and resubmit your timesheet for approval.</p>
+                    <p>If you require any clarification or assistance, please don't hesitate to contact us.</p>
+                    <p>Thank you for your attention.</p>
+                    <p>Best regards,</p>
+                    <p>The TimeChronos Team</p>'''
 
-                ses.send_email.delay(approver.email, user.email, subject, body_html)
+                ses.send_email.delay('contact@digitalshelfiq.com', user.email, subject, body_html)
                 return jsonify({'message': 'Timesheet rejected successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
@@ -1662,10 +1687,13 @@ class ApproverController:
                 body_html = f'''
                     <h1>Timesheet Approval Request</h1>
                     <p>Dear {approver.firstname},</p>
-                    <p>A new timesheet has been requested by {user.firstname} {user.lastname}.</p>
-                    <p>Please review and take the necessary action.</p>'''
+                    <p>A new timesheet has been submitted for your approval.</p>
+                    <p>Please review and approve {user.firstname} {user.lastname}'s timesheet for the {timesheet.name} from {timesheet.start_date} to {timesheet.end_date} at your earliest convenience.</p>
+                    <p>Timesheet link: <a href="{url}/approval/{timesheet_id}">Click Here</a></p>
+                    <p>Best regards,</p>
+                    <p> TimeChronos Team </p>'''
             
-                ses.send_email.delay(source=user.email, destination=approver.email, subject=subject, body_html=body_html)
+                ses.send_email.delay(source='contact@digitalshelfiq.com', destination=approver.email, subject=subject, body_html=body_html)
                 return jsonify({'message': 'Approval request sent successfully', 'status': 201})
             
             else:
@@ -1694,13 +1722,6 @@ class ApproverController:
             approver = User.query.filter_by(id=user.approver_id, is_archived=False).first()
             if not approver:
                 return jsonify({'message': 'No approver found for this user', 'status': 404}), 404
-            
-            subject = 'Timesheet Recall Request'
-            body_html = f'''
-                <h1>Timesheet Recall Request</h1>
-                <p>Dear {approver.firstname},</p>
-                <p>A recall timesheet request has been made by {user.firstname} {user.lastname} for the timesheet.</p>
-                <p>Please review and approve or reject the recall request.</p>'''
 
             timesheet = Timesheet.query.filter_by(id=timesheet_id, is_archived=False).first()
             if not timesheet:
@@ -1711,7 +1732,21 @@ class ApproverController:
                 self.db_helper.update_record()
                 #self.db_helper.update_record()(timesheet, user_id)
 
-                ses.send_email.delay(source=user.email, destination=approver.email, subject=subject, body_html=body_html)
+                subject = 'Timesheet Recall Request'
+                body_html = f'''
+                    <h1>Timesheet Recall Request</h1>
+                    <p>Dear {approver.firstname},</p>
+                    <p>We are writing to inform you that {user.firstname} {user.lastname} has requested to recall their {timesheet.name} from {timesheet.start_date} to {timesheet.end_date}. They have expressed a need to make some changes to their recorded hours.</p>
+                    <p>To accept the recall request and allow {user.firstname} to make necessary adjustments. Please click on button below:</p>
+                    <p>
+                        <a href="{url}/approvals" style="text-decoration: none;">
+                            <button type="button" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Recall Timesheet</button>
+                        </a>
+                    </p>
+                    <p>Best regards,</p>
+                    <p> TimeChronos Team </p>'''
+
+                ses.send_email.delay(source='contact@digitalshelfiq.com', destination=approver.email, subject=subject, body_html=body_html)
             else:
                 return jsonify({'message': 'Timesheet cannot be accepted as it is not in recalled status', 'status': 400}), 400
             
@@ -1757,10 +1792,13 @@ class ApproverController:
                 body_html = f'''
                     <h1>Timesheet Recall Accepted</h1>
                     <p>Dear {user.firstname},</p>
-                    <p>Your recall timesheet for the "{timesheet.name}" has been accepted.</p>
-                    <p>Please review and make necessary adjustments.</p>'''
+                    <p>Your recall request for the timesheet titled "<strong>{timesheet.name}</strong>" has been accepted.</p>
+                    <p>You can review the timesheet at the following link:</p>
+                    <p><a href="{url}/timesheet/{timesheet_id}" style="color: #4CAF50; text-decoration: none;">Click Here</a></p>
+                    <p>Best regards,</p>
+                    <p>The TimeChronos Team</p>'''
                 
-                ses.send_email.delay(source=approver.email, destination=user.email, subject=subject, body_html=body_html)
+                ses.send_email.delay(source='contact@digitalshelfiq.com', destination=user.email, subject=subject, body_html=body_html)
             else:
                 return jsonify({'message': 'Timesheet cannot be accepted as it is not in recalled status', 'status': 400}), 400
             

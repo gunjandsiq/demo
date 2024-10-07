@@ -23,7 +23,8 @@ environment = {
         "bucket_name" : os.getenv('BUCKET_NAME'),
         "jwt-private-key": open("private_key.pem", "r").read(),
         "jwt-public-key": open("public_key.pem", "r").read(),
-        "jwt-algo": "RS256"
+        "jwt-algo": "RS256",
+        "url": "http://dev.timechronos.com"
     },
     "server": {
         "db": f"postgresql://{rds_user}:{rds_password}@{rds_host}:{rds_port}/{rds_db}",
@@ -35,6 +36,7 @@ environment = {
         "bucket_name" : os.getenv('BUCKET_NAME'),
         "jwt-private-key": open("private_key.pem", "r").read(),
         "jwt-public-key": open("public_key.pem", "r").read(),
-        "jwt-algo": "RS256"
+        "jwt-algo": "RS256",
+        "url": "dev.timechronos.com"
     }
 }
