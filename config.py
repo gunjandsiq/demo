@@ -1,6 +1,6 @@
 from datetime import timedelta
 from dotenv import load_dotenv
-import os
+import os, urllib.parse
 
 load_dotenv()
 
@@ -9,6 +9,7 @@ rds_user = os.getenv('RDS_USER')
 rds_port = os.getenv('RDS_PORT')
 rds_host = os.getenv('RDS_HOST')
 rds_db = os.getenv('RDS_DB_NAME')
+redis_password = urllib.parse.quote('5!CHFxEXac@R2Gz', safe='')
 
 environment = {
     "local":{
@@ -28,7 +29,7 @@ environment = {
     },
     "server": {
         "db": f"postgresql://{rds_user}:{rds_password}@{rds_host}:{rds_port}/{rds_db}",
-        "redis":"redis://:JustWin12@localhost:6379/0",
+        "redis": f"redis://:{redis_password}@192.1681.101:6379/0",
         "jwt-access-token-expiration": timedelta(minutes=30),
         "jwt-refresh-token-expiration": timedelta(days=30),
         "aws_access_key_id" : os.getenv('AWS_ACCESS_KEY_ID'),
