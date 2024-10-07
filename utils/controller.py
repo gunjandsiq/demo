@@ -1358,7 +1358,7 @@ class TimesheetController:
 
             timesheets = query.all()
             if not timesheets:
-                return jsonify({'message': 'No timesheets found for this user', 'status': 200}), 200
+                return jsonify({'message': 'No timesheets found for this user', 'status': 404}), 404
             
             timesheet_list = []
             for timesheet in timesheets:
