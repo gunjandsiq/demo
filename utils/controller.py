@@ -1,8 +1,9 @@
-from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper, SesHelper, get_jwt_identity, jwt_required, S3Helper
+from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper,  get_jwt_identity, jwt_required, AwsHelper
 from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval, BlacklistToken, Token
 from flask import jsonify, request
 from sqlalchemy import func
 from celery_config import env
+import json
 
 url = env['url']
 class Controller:
@@ -14,7 +15,7 @@ class Controller:
     def register(self):
         try:
             db_helper = DbHelper()
-            ses = SesHelper()
+            aws = AwsHelper()
             data = request.get_json()
             required_fields = ['company_name', 'firstname', 'email', 'password', 'gender', 'phone']
             if not data or not all(data.get(key) for key in required_fields):
@@ -52,17 +53,24 @@ class Controller:
             db_helper.add_record(user)
             
             reset_url = f"{url}/login"
-            subject = "Welcome to TimeChronos - Simplify your Time Management"
+            subject = "Welcome to TimeChronos - Simplify your Time Management",
             body_html = f"""
-            <h1>Welcome to TimeChronos!</h1>
-            <p>Thank you for signing up, {user.firstname}. We're excited to have you on board!</p>
-            <p>To get started, please log in to your account by clicking the link below:</p>
-            <p><a href="{reset_url}" style="color: #4CAF50; text-decoration: none;">{reset_url}</a></p>
-            <p>We hope TimeChronos will simplify your time management and enhance your productivity.</p>
-            <p>Best regards,</p>
-            <p>The TimeChronos Team</p>"""
+                <h1>Welcome to TimeChronos!</h1>
+                <p>Thank you for signing up, {user.firstname}. We're excited to have you on board!</p>
+                <p>To get started, please log in to your account by clicking the link below:</p>
+                <p><a href="{reset_url}" style="color: #4CAF50; text-decoration: none;">{reset_url}</a></p>
+                <p>We hope TimeChronos will simplify your time management and enhance your productivity.</p>
+                <p>Best regards,</p>
+                <p>The TimeChronos Team</p>"""
+            
+            email_task = {
+                "source": 'contact@digitalshelfiq.com',
+                "destination": email,
+                "subject" : subject,
+                "body_html" : body_html
+            }
 
-            ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
+            aws.send_message(env['sqs_url'], message_body= json.dumps(email_task))
 
             if user.role == 'Admin':
                 user.supervisor_id = user.id
@@ -123,7 +131,7 @@ class Controller:
         try:
             db_helper = DbHelper()
             code = CodeHelper()
-            ses = SesHelper()
+            aws = AwsHelper()
             data = request.get_json()
             if not data or 'email' not in data:
                 return jsonify({'message': 'Invalid input: email required', 'status': 400}), 400
@@ -144,7 +152,14 @@ class Controller:
             <p>If you did not request a password reset, please ignore this email or contact support if you have any concerns.</p>
             <p>Best regards,</p>
             <p>The TimeChronos Team</p>"""
-            ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
+
+            email_task = {
+                "source": 'contact@digitalshelfiq.com',
+                "destination": email,
+                "subject" : subject,
+                "body_html" : body_html
+            }
+            aws.send_message(env['sqs_url'], message_body= json.dumps(email_task))
 
             query = Token(user_id = user.id, token = token)
             db_helper.add_record(query)
@@ -156,7 +171,7 @@ class Controller:
     def reset_password_with_token(self, token):
         try:
             db_helper = DbHelper()
-            ses = SesHelper()
+            aws = AwsHelper()
             code = CodeHelper()
             email = code.confirm_reset_token(token)
             if not email:
@@ -183,7 +198,14 @@ class Controller:
             <p>If you did not perform this action or suspect any unusual activity, please contact our support team immediately.</p>
             <p>Best regards,</p>
             <p>The TimeChronos Team</p>"""
-            ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
+
+            email_task = {
+                "source": 'contact@digitalshelfiq.com',
+                "destination": email,
+                "subject" : subject,
+                "body_html" : body_html
+            }
+            aws.send_message(env['sqs_url'], message_body= json.dumps(email_task))
 
             return jsonify({'message': 'Password reset successfully', 'status': 200}), 200
         except Exception as e:
@@ -192,7 +214,7 @@ class Controller:
     def change_password(self):
         try:
             db_helper = DbHelper()
-            ses = SesHelper()
+            aws = AwsHelper()
             auth = AuthorizationHelper()
             token = auth.get_jwt_token()
             if not token:
@@ -228,7 +250,13 @@ class Controller:
             <p>Best Regards,</p>
             <p>The TimeChronos Team</p>"""
 
-            ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
+            email_task = {
+                "source": 'contact@digitalshelfiq.com',
+                "destination": email,
+                "subject" : subject,
+                "body_html" : body_html
+            }
+            aws.send_message(env['sqs_url'], message_body= json.dumps(email_task))
 
             return jsonify({'message': 'Password changed successfully', 'status': 200})
         except Exception as e:
@@ -321,7 +349,7 @@ class UserController:
 
     def add_user(self):
         try:
-            ses = SesHelper()
+            aws = AwsHelper()
             password_helper = PasswordHelper()
             data = request.get_json()
             required_fields = ['firstname', 'email', 'role', 'password', 'gender','supervisor_id', 'approver_id']
@@ -378,7 +406,13 @@ class UserController:
             <p>Best Regards,</p>
             <p>The TimeChronos Team</p>"""
             
-            ses.send_email.delay(source='contact@digitalshelfiq.com', destination=email, subject=subject, body_html=body_html)
+            email_task = {
+                "source": 'contact@digitalshelfiq.com',
+                "destination": email,
+                "subject" : subject,
+                "body_html" : body_html
+            }
+            aws.send_message(env['sqs_url'], message_body= json.dumps(email_task))
 
             return jsonify({
                 'message': 'User added successfully', 
@@ -1546,7 +1580,7 @@ class ApproverController:
 
     def approve_timesheet(self):
         try:
-            ses = SesHelper()
+            aws = AwsHelper()
             data = request.get_json()
             required_fields = ['timesheet_id']
             
@@ -1591,7 +1625,13 @@ class ApproverController:
                     <p>Best regards,</p>
                     <p>The TimeChronos Team</p>'''
 
-                ses.send_email.delay('contact@digitalshelfiq.com', user.email, subject, body_html)
+                email_task = {
+                    "source": 'contact@digitalshelfiq.com',
+                    "destination": user.email,
+                    "subject" : subject,
+                    "body_html" : body_html
+                }
+                aws.send_message(env['sqs_url'], message_body= json.dumps(email_task))
                 return jsonify({'message': 'Timesheet approved successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
@@ -1599,7 +1639,7 @@ class ApproverController:
 
     def reject_timesheet(self):
         try:
-            ses = SesHelper()
+            aws = AwsHelper()
             data = request.get_json()
             required_fields = ['timesheet_id', 'feedback']
             
@@ -1648,14 +1688,20 @@ class ApproverController:
                     <p>Best regards,</p>
                     <p>The TimeChronos Team</p>'''
 
-                ses.send_email.delay('contact@digitalshelfiq.com', user.email, subject, body_html)
+                email_task = {
+                    "source": 'contact@digitalshelfiq.com',
+                    "destination": user.email,
+                    "subject" : subject,
+                    "body_html" : body_html
+                }
+                aws.send_message(env['sqs_url'], message_body= json.dumps(email_task))
                 return jsonify({'message': 'Timesheet rejected successfully', 'status': 201})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
 
     def send_approval_request(self):
         try:
-            ses = SesHelper()
+            aws = AwsHelper()
             data = request.get_json()
             required_fields = ['timesheet_id']
             
@@ -1693,7 +1739,13 @@ class ApproverController:
                     <p>Best regards,</p>
                     <p> TimeChronos Team </p>'''
             
-                ses.send_email.delay(source='contact@digitalshelfiq.com', destination=approver.email, subject=subject, body_html=body_html)
+                email_task = {
+                    "source": 'contact@digitalshelfiq.com',
+                    "destination": approver.email,
+                    "subject" : subject,
+                    "body_html" : body_html
+                }
+                aws.send_message(env['sqs_url'], message_body= json.dumps(email_task))
                 return jsonify({'message': 'Approval request sent successfully', 'status': 201})
             
             else:
@@ -1704,7 +1756,7 @@ class ApproverController:
         
     def send_recall_request(self):
         try:
-            ses = SesHelper()
+            aws = AwsHelper()
             data = request.get_json()
             required_fields = ['timesheet_id']
             
@@ -1746,7 +1798,13 @@ class ApproverController:
                     <p>Best regards,</p>
                     <p> TimeChronos Team </p>'''
 
-                ses.send_email.delay(source='contact@digitalshelfiq.com', destination=approver.email, subject=subject, body_html=body_html)
+                email_task = {
+                    "source": 'contact@digitalshelfiq.com',
+                    "destination": approver.email,
+                    "subject" : subject,
+                    "body_html" : body_html
+                }
+                aws.send_message(env['sqs_url'], message_body= json.dumps(email_task))
             else:
                 return jsonify({'message': 'Timesheet cannot be accepted as it is not in recalled status', 'status': 400}), 400
             
@@ -1757,7 +1815,7 @@ class ApproverController:
         
     def accept_recall_request(self):
         try:
-            ses = SesHelper()
+            aws = AwsHelper()
             data = request.get_json()
             required_fields = ['timesheet_id']
             
@@ -1798,7 +1856,13 @@ class ApproverController:
                     <p>Best regards,</p>
                     <p>The TimeChronos Team</p>'''
                 
-                ses.send_email.delay(source='contact@digitalshelfiq.com', destination=user.email, subject=subject, body_html=body_html)
+                email_task = {
+                    "source": 'contact@digitalshelfiq.com',
+                    "destination": user.email,
+                    "subject" : subject,
+                    "body_html" : body_html
+                }
+                aws.send_message(env['sqs_url'], message_body= json.dumps(email_task))
             else:
                 return jsonify({'message': 'Timesheet cannot be accepted as it is not in recalled status', 'status': 400}), 400
             
