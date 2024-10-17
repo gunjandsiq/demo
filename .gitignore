@@ -55,3 +55,6 @@ Thumbs.db
 
 # AWS credentials files (if stored locally)
 .aws/
+
+# zappa settings
+zappa_settings.json
