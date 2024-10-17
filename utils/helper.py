@@ -203,28 +203,7 @@ class AwsHelper:
             print(f"An error occurred: {e}")
             return str(e)
         
-def lambda_handler(event, context):
-        try:
-            ses = AwsHelper()
-            print("Processing SQS messages...")
-        
-            for record in event['Records']:
-                message = json.loads(record['body'])
-                
-                source = message['source']
-                destination = message['destination']
-                subject = message['subject']
-                body_html = message['body_html']
-                
-                ses.send_email(source, destination, subject, body_html)
-
-            return {
-                'statusCode': 200,
-                'body': 'Emails processed successfully'
-            }
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            return str(e)     
+    
 
 class S3Helper:
 
@@ -320,6 +299,29 @@ class S3Helper:
         except Exception as e:
             print(f"An error occurred: {e}")
             return str(e)
+        
+def lambda_handler(event, context):
+        try:
+            ses = AwsHelper()
+            print("Processing SQS messages...")
+        
+            for record in event['Records']:
+                message = json.loads(record['body'])
+                
+                source = message['source']
+                destination = message['destination']
+                subject = message['subject']
+                body_html = message['body_html']
+                
+                ses.send_email(source, destination, subject, body_html)
+
+            return {
+                'statusCode': 200,
+                'body': 'Emails processed successfully'
+            }
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return str(e) 
         
 # DimDate query        
 dim_date_insert = """
