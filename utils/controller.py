@@ -53,7 +53,7 @@ class Controller:
             db_helper.add_record(user)
             
             reset_url = f"{url}/login"
-            subject = "Welcome to TimeChronos - Simplify your Time Management",
+            subject = "Welcome to TimeChronos - Simplify your Time Management"
             body_html = f"""
                 <h1>Welcome to TimeChronos!</h1>
                 <p>Thank you for signing up, {user.firstname}. We're excited to have you on board!</p>

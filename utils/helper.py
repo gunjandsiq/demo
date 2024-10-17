@@ -167,11 +167,12 @@ class AuthorizationHelper:
 class AwsHelper:
 
     def __init__(self):
-        self.client_sqs = boto3.client('sqs', aws_access_key_id=env['aws_access_key_id'],
-                                  aws_secret_access_key=env['aws_secret_access_key_id'], region_name='us-east-1')
+        self.client_sqs = boto3.client('sqs', region_name='us-east-2')
         
-        self.client_ses = boto3.client('ses', aws_access_key_id=env['aws_access_key_id'],
-                                  aws_secret_access_key=env['aws_secret_access_key_id'], region_name='us-east-1')
+        self.client_ses = boto3.client('ses', region_name='us-east-1')
+        
+        if not env['aws_access_key_id'] or not env['aws_secret_access_key_id']:
+            raise ValueError("AWS credentials are missing. Please set 'aws_access_key_id' and 'aws_secret_access_key_id'.")
 
     def send_email(self, source, destination, subject, body_html):
         try:
@@ -202,8 +203,9 @@ class AwsHelper:
             print(f"An error occurred: {e}")
             return str(e)
         
-    def lambda_handler(self, event, context):
+def lambda_handler(event, context):
         try:
+            ses = AwsHelper()
             print("Processing SQS messages...")
         
             for record in event['Records']:
@@ -214,7 +216,7 @@ class AwsHelper:
                 subject = message['subject']
                 body_html = message['body_html']
                 
-                self.send_email(source, destination, subject, body_html)
+                ses.send_email(source, destination, subject, body_html)
 
             return {
                 'statusCode': 200,
@@ -222,42 +224,7 @@ class AwsHelper:
             }
         except Exception as e:
             print(f"An error occurred: {e}")
-            return str(e)
-        
-    # def receive_messages(self, queue_url, max_number_of_messages=10):
-    #     try:
-    #         response = self.client_sqs.receive_messages(
-    #             QueueUrl=queue_url,
-    #             MaxNumberOfMessages=max_number_of_messages
-    #         )
-    #         return response
-    #     except Exception as e:
-    #         print(f"An error occurred: {e}")
-    #         return str(e)
-        
-    # def delete_message(self, queue_url, receipt_handle):
-    #     try:
-    #         response = self.client_sqs.delete_message(
-    #             QueueUrl=queue_url,
-    #             ReceiptHandle=receipt_handle
-    #         )
-    #         print("Message deleted successfully")
-    #     except Exception as e:
-    #         print(f"An error occurred: {e}")
-    #         return str(e)
-        
-    # def update_message_attributes(self, queue_url, receipt_handle, attributes):
-    #     try:
-    #         response = self.client_sqs.change_message_attributes(
-    #             QueueUrl=queue_url,
-    #             ReceiptHandle=receipt_handle,
-    #             Attributes=attributes
-    #         )
-    #         print("Message attributes updated successfully")
-    #     except Exception as e:
-    #         print(f"An error occurred: {e}")
-    #         return str(e)
-        
+            return str(e)     
 
 class S3Helper:
 

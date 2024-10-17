@@ -12,10 +12,10 @@ rds_db = os.getenv('RDS_DB_NAME')
 
 environment = {
     "local":{
-        "db": "postgresql://postgres:first@localhost:5432/postgres",
+        "db": "postgresql://postgres:first@localhost:5432/postgres?options=-csearch_path=timechronos",
         "redis": "redis://:JustWin12@localhost:6379/0",
         "celery-broker": "redis://:JustWin12@localhost:6379/0",
-        "celery-backend": "db+postgresql://postgres:first@localhost:5432/postgres",
+        "celery-backend": "db+postgresql://postgres:first@localhost:5432/postgres?options=-csearch_path=timechronos",
         "jwt-access-token-expiration": timedelta(minutes=30),
         "jwt-refresh-token-expiration": timedelta(days=30),
         "aws_access_key_id" : os.getenv('AWS_ACCESS_KEY_ID'),
@@ -28,7 +28,10 @@ environment = {
         "sqs_url": "https://sqs.us-east-2.amazonaws.com/054153502545/redis-timechronos"
     },
     "server": {
-        "db": f"postgresql://{rds_user}:{rds_password}@{rds_host}:{rds_port}/{rds_db}",
+        "db": f"postgresql://{rds_user}:{rds_password}@{rds_host}:{rds_port}/{rds_db}?options=-csearch_path=timechronos",
+        "redis": "redis://:JustWin12@localhost:6379/0",
+        "celery-broker": "redis://:JustWin12@localhost:6379/0",
+        "celery-backend": f"db+postgresql://{rds_user}:{rds_password}@{rds_host}:{rds_port}/{rds_db}?options=-csearch_path=timechronos",
         "jwt-access-token-expiration": timedelta(minutes=30),
         "jwt-refresh-token-expiration": timedelta(days=30),
         "aws_access_key_id" : os.getenv('AWS_ACCESS_KEY_ID'),           
@@ -37,7 +40,7 @@ environment = {
         "jwt-private-key": open("private_key.pem", "r").read(),
         "jwt-public-key": open("public_key.pem", "r").read(),
         "jwt-algo": "RS256",
-        "url": "dev.timechronos.com",
+        "url": "http://dev.timechronos.com",
         "sqs_url": "https://sqs.us-east-2.amazonaws.com/054153502545/redis-timechronos"
     }
 }

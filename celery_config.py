@@ -3,7 +3,7 @@ from config import environment
 import psycopg2
 from psycopg2 import sql
 
-env = environment['local']
+env = environment['server']
 celery = Celery(__name__, broker=env['celery-broker'])
 
 db = env['db'].split('?')[0]
