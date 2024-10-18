@@ -239,7 +239,7 @@ class Controller:
             
             hashed_password = self.password_helper.hash_password(new_password)
             user.password = hashed_password
-            db_helper.update_record(user)
+            db_helper.update_record()
 
             subject = "Password change confirmation"
             body_html = f"""
