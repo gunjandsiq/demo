@@ -189,7 +189,7 @@ class Controller:
 
             hashed_password = self.password_helper.hash_password(new_password)
             user.password = hashed_password
-            db_helper.update_record(user)
+            db_helper.update_record()
 
             subject = "Password reset successfully"
             body_html = f"""
@@ -317,7 +317,7 @@ class CompanyController:
                 
                 company.name = new_name
 
-            self.db_helper.update_record(company)
+            self.db_helper.update_record()
             return jsonify({'message': 'Company updated successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -335,7 +335,7 @@ class CompanyController:
 
             company.is_archived = True
             company.is_active = False
-            self.db_helper.update_record(company)
+            self.db_helper.update_record()
             return jsonify({'message': 'Company deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e), 'status': 500}), 500
@@ -465,7 +465,7 @@ class UserController:
                 if key != 'id' and value: 
                     setattr(user, key, value)
 
-            self.db_helper.update_record(user)
+            self.db_helper.update_record()
 
             return jsonify({'message': 'User updated successfully', 'status': 200}), 200
         except Exception as e:
@@ -490,7 +490,7 @@ class UserController:
             
             user.is_archived = True
             user.is_active = False
-            self.db_helper.update_record(user)
+            self.db_helper.update_record()
             return jsonify({'message': 'User deleted successfully', 'status': 200})
         except Exception as e:
             return jsonify({'message': str(e)}), 500
