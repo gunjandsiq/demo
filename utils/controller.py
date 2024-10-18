@@ -1,4 +1,4 @@
-from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper,  get_jwt_identity, jwt_required, AwsHelper
+from utils.helper import DbHelper, PasswordHelper, AuthenticationHelper, AuthorizationHelper, CodeHelper,  get_jwt_identity, jwt_required, AwsHelper, S3Helper
 from utils.models import db,User, Client, Project, Task, TaskHours, Company, Timesheet, DimDate, Approval, BlacklistToken, Token
 from flask import jsonify, request
 from sqlalchemy import func
@@ -620,7 +620,7 @@ class ClientController:
             self.db_helper.log_insert(client, self.token.get('user_id'))
 
             return jsonify({
-                'message': 'Client added successfully', 
+                'message': 'Client added successfully',                 
                 'id': client.id, 
                 'name':client.name, 
                 'email':client.email, 
