@@ -101,16 +101,16 @@ class Project(db.Model, TimeStamp):
     end_date = db.Column(db.Date)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     is_archived = db.Column(db.Boolean, default=False)
-    # estimated_hours = db.Column(db.Integer)
-    # estimated_cost = db.Column(db.Integer)
+    estimated_hours = db.Column(db.Integer)
+    estimated_cost = db.Column(db.Integer)
     client_id = db.Column(UUID(as_uuid=True), db.ForeignKey('client.id', ondelete="CASCADE"), nullable=False)
 
     tasks = db.relationship('Task', backref='project', cascade="all, delete-orphan", passive_deletes=True)
 
-# class BillableType(enum.Enum):
-#     BILLABLE = "Billable"
-#     NON_BILLABLE = "Non-Billable"
-#     BOTH = "both"
+class BillableType(enum.Enum):
+    BILLABLE = "Billable"
+    NON_BILLABLE = "Non-Billable"
+    BOTH = "both"
 
 class Task(db.Model, TimeStamp):
     __tablename__ = 'task'
@@ -121,7 +121,7 @@ class Task(db.Model, TimeStamp):
     end_date = db.Column(db.Date)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     is_archived = db.Column(db.Boolean, default=False)
-    # billable_type = db.Column(db.Enum(BillableType), default= BillableType.BILLABLE)
+    billable_type = db.Column(db.Enum(BillableType), default= BillableType.BILLABLE)
 
     taskhours = db.relationship('TaskHours', backref='task', cascade="all, delete-orphan", passive_deletes=True)
 
