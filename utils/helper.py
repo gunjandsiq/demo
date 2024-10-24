@@ -296,6 +296,12 @@ class S3Helper:
                 ExpiresIn= 604800
             )
             return response
+        except self.client_s3.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == 'ExpiredToken': 
+                print("The pre-signed URL has expired. Generating a new one...")
+                return self.generate_presigned_of_img(bucket_name, file_key)  
+            print(f"An error occurred: {e}")
+            return str(e)
         except Exception as e:
             print(f"An error occurred: {e}")
             return str(e)

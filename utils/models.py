@@ -101,9 +101,16 @@ class Project(db.Model, TimeStamp):
     end_date = db.Column(db.Date)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     is_archived = db.Column(db.Boolean, default=False)
+    # estimated_hours = db.Column(db.Integer)
+    # estimated_cost = db.Column(db.Integer)
     client_id = db.Column(UUID(as_uuid=True), db.ForeignKey('client.id', ondelete="CASCADE"), nullable=False)
 
     tasks = db.relationship('Task', backref='project', cascade="all, delete-orphan", passive_deletes=True)
+
+# class BillableType(enum.Enum):
+#     BILLABLE = "Billable"
+#     NON_BILLABLE = "Non-Billable"
+#     BOTH = "both"
 
 class Task(db.Model, TimeStamp):
     __tablename__ = 'task'
@@ -114,6 +121,7 @@ class Task(db.Model, TimeStamp):
     end_date = db.Column(db.Date)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     is_archived = db.Column(db.Boolean, default=False)
+    # billable_type = db.Column(db.Enum(BillableType), default= BillableType.BILLABLE)
 
     taskhours = db.relationship('TaskHours', backref='task', cascade="all, delete-orphan", passive_deletes=True)
 
@@ -141,6 +149,7 @@ class TaskHours(db.Model, TimeStamp):
     __tablename__ = 'taskhours'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
     values = db.Column(db.ARRAY(db.Integer), nullable=False, default=lambda: [0] * 7)
+    # comments = db.Column(db.ARRAY(db.String), nullable=False, default=lambda: [''] * 7)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     task_id = db.Column(UUID(as_uuid=True), db.ForeignKey('task.id', ondelete="CASCADE"), nullable=False)
     timesheet_id = db.Column(UUID(as_uuid=True), db.ForeignKey('timesheet.id', ondelete="CASCADE"), nullable=False)
@@ -157,7 +166,6 @@ class HistoryLogger(db.Model, TimeStamp):
 
 class BlacklistToken(db.Model, TimeStamp):
     __tablename__ = 'blacklist_tokens'
-    
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
     jti = db.Column(db.String(100), nullable=False)
     blacklisted_on = db.Column(db.DateTime, nullable=False, default=datetime.now)
